@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    background: #08080f;
+    color: #ededf3;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  input, select, textarea, button {
+    font-family: inherit;
+    font-size: inherit;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  *:focus-visible {
+    outline: 2px solid #5266eb;
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(30, 30, 42, 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(237, 237, 243, 0.06);
+  }
+  .glass-strong {
+    background: rgba(30, 30, 42, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(237, 237, 243, 0.08);
+  }
+  .card-hover {
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.3s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-3px) scale(1.005);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+  .pill {
+    border-radius: 32px;
+  }
+  .text-accent {
+    color: #5266eb;
+  }
+  .bg-accent {
+    background: #5266eb;
+  }
+  .border-accent {
+    border-color: #5266eb;
+  }
+  .text-ivory {
+    color: #ededf3;
+  }
+  .text-ash {
+    color: #d4d4dd;
+  }
+  .bg-surface {
+    background: #1e1e2a;
+  }
+  .bg-elevated {
+    background: #272735;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-dot {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out forwards;
+}

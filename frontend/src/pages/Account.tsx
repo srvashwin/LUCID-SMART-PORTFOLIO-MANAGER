@@ -1,0 +1,133 @@
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import api from '../services/api'
+import { useAuth } from '../hooks/useAuth'
+import GlassCard from '../components/GlassCard'
+import PillButton from '../components/PillButton'
+import { getAllCurrencies } from '../utils/format'
+
+export default function Account() {
+  const { user, refreshUser } = useAuth()
+  const [currency, setCurrency] = useState(user?.currency || 'USD')
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [saved, setSaved] = useState('')
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaved('password')
+    setTimeout(() => setSaved(''), 2000)
+  }
+
+  const handleCurrencyChange = async (newCurrency: string) => {
+    setCurrency(newCurrency)
+    try {
+      await api.patch('/auth/me', { currency: newCurrency })
+      await refreshUser()
+      setSaved('currency')
+      setTimeout(() => setSaved(''), 2000)
+    } catch {}
+  }
+
+  if (!user) return null
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="animate-fade-in">
+        <h1 className="text-3xl font-semibold text-ivory" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>Account</h1>
+        <p className="text-ash text-sm mt-1">Manage your profile and security settings</p>
+      </div>
+
+      {/* Profile */}
+      <GlassCard className="p-6" hover={false}>
+        <h2 className="text-sm font-medium text-ivory mb-4" style={{ fontWeight: 500 }}>Profile</h2>
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 rounded-full bg-[rgba(82,102,235,0.15)] flex items-center justify-center text-xl font-semibold text-[#9cb4e8]">
+            {user.name.charAt(0).toUpperCase()}
+          </div>
+          <div>
+            <p className="text-base font-medium text-ivory">{user.name}</p>
+            <p className="text-sm text-ash">{user.email}</p>
+            <p className="text-xs text-ash mt-0.5">Member since {new Date(user.created_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+      </GlassCard>
+
+      {/* Security */}
+      <GlassCard className="p-6" hover={false}>
+        <h2 className="text-sm font-medium text-ivory mb-4" style={{ fontWeight: 500 }}>Change Password</h2>
+        <form onSubmit={handleChangePassword} className="space-y-3">
+          <input
+            type="password"
+            placeholder="Current password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+            className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]"
+          />
+          <input
+            type="password"
+            placeholder="New password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            required
+            minLength={6}
+            className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]"
+          />
+          <div className="flex items-center gap-3">
+            <PillButton type="submit">Update Password</PillButton>
+            {saved === 'password' && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-sm text-green-400"
+              >
+                Password updated
+              </motion.span>
+            )}
+          </div>
+        </form>
+      </GlassCard>
+
+      {/* Preferences */}
+      <GlassCard className="p-6" hover={false}>
+        <h2 className="text-sm font-medium text-ivory mb-4" style={{ fontWeight: 500 }}>Preferences</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs text-ash block mb-1.5 font-medium">Currency</label>
+            <select
+              value={currency}
+              onChange={(e) => handleCurrencyChange(e.target.value)}
+              className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors"
+            >
+              {getAllCurrencies().map(c => (
+                <option key={c.code} value={c.code}>{c.symbol} - {c.name} ({c.code})</option>
+              ))}
+            </select>
+          </div>
+          <label className="flex items-center justify-between">
+            <span className="text-sm text-ivory">Email notifications for rule alerts</span>
+            <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#5266eb]" />
+          </label>
+          <label className="flex items-center justify-between">
+            <span className="text-sm text-ivory">Monthly report summary</span>
+            <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#5266eb]" />
+          </label>
+          <label className="flex items-center justify-between">
+            <span className="text-sm text-ivory">AI suggestions enabled</span>
+            <input type="checkbox" defaultChecked className="w-4 h-4 accent-[#5266eb]" />
+          </label>
+        </div>
+      </GlassCard>
+
+      {/* Danger Zone */}
+      <GlassCard className="p-6 border border-red-400/20" hover={false}>
+        <h2 className="text-sm font-medium text-red-400 mb-2">Danger Zone</h2>
+        <p className="text-xs text-ash mb-3">Permanently delete your account and all data. This action cannot be undone.</p>
+        <PillButton variant="outline" className="border-red-400 text-red-400 hover:bg-red-400/10">
+          Delete Account
+        </PillButton>
+      </GlassCard>
+    </div>
+  )
+}
