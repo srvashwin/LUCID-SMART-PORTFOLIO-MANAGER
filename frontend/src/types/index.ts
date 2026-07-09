@@ -26,7 +26,40 @@ export interface Expense {
   merchant: string
   use_case: string
   raw_chat_input: string
+  source: string
+  import_batch_id: number | null
   date: string
+  created_at: string
+}
+
+export interface ImportPreviewRow {
+  date: string
+  description: string
+  amount: number
+  direction: string
+  category_guess: string
+  is_duplicate: boolean
+  dedupe_hash: string
+  include: boolean
+}
+
+export interface ImportPreviewResponse {
+  bank_name: string
+  rows: ImportPreviewRow[]
+  duplicate_count: number
+  total_count: number
+}
+
+export interface ImportConfirmRequest {
+  rows: ImportPreviewRow[]
+}
+
+export interface ImportBatch {
+  id: number
+  filename: string
+  bank_name: string
+  row_count: number
+  status: string
   created_at: string
 }
 

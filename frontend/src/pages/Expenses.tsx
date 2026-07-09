@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import api from '../services/api'
 import type { Expense } from '../types'
@@ -76,7 +77,16 @@ export default function Expenses() {
         >
           {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
         </select>
-        <div className="flex-1" />
+        <Link to="/import">
+          <button className="px-4 py-2 rounded-xl text-sm font-medium bg-[#5266eb] text-white hover:brightness-110 transition-all flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Import Statement
+          </button>
+        </Link>
         <div className="text-sm text-ash">
           Total: <span className="text-ivory font-semibold">{formatAmount(total, currency)}</span>
         </div>
@@ -93,18 +103,19 @@ export default function Expenses() {
                 <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Category</th>
                 <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider hidden sm:table-cell">Description</th>
                 <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider hidden sm:table-cell">Merchant</th>
+                <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider hidden md:table-cell">Source</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="p-4">
+                  <td colSpan={6} className="p-4">
                     <LoadingList rows={5} />
                   </td>
                 </tr>
               ) : expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-12 text-ash text-sm">No expenses found for this period</td>
+                  <td colSpan={6} className="text-center py-12 text-ash text-sm">No expenses found for this period</td>
                 </tr>
               ) : (
                 expenses.map((exp, i) => (
@@ -125,6 +136,15 @@ export default function Expenses() {
                     </td>
                     <td className="px-4 md:px-5 py-3 text-ash hidden sm:table-cell">{exp.description}</td>
                     <td className="px-4 md:px-5 py-3 text-ash hidden sm:table-cell">{exp.merchant}</td>
+                    <td className="px-4 md:px-5 py-3 hidden md:table-cell">
+                      {exp.source === 'import' ? (
+                        <PillBadge variant="success">Imported</PillBadge>
+                      ) : exp.source === 'ai_chat' ? (
+                        <PillBadge variant="accent">AI</PillBadge>
+                      ) : (
+                        <PillBadge variant="default">Manual</PillBadge>
+                      )}
+                    </td>
                   </motion.tr>
                 ))
               )}

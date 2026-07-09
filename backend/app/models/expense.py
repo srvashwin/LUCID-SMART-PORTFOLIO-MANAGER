@@ -14,5 +14,8 @@ class Expense(Base):
     merchant = Column(String, default="")
     use_case = Column(Text, default="")
     raw_chat_input = Column(Text, default="")
+    source = Column(String, default="manual")
+    import_batch_id = Column(Integer, ForeignKey("import_batches.id"), nullable=True, index=True)
+    dedupe_hash = Column(String, default="", index=True)
     date = Column(Date, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

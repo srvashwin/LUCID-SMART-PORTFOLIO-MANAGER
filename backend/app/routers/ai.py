@@ -270,6 +270,7 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
             description=params.get("description", ""),
             merchant=params.get("merchant", ""),
             raw_chat_input=data.message,
+            source="ai_chat",
             date=date.today(),
         )
         db.add(expense)
@@ -309,7 +310,8 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
                 existing.current_amount = (existing.current_amount or 0) + ca
                 expense = Expense(
                     user_id=user.id, amount=ca, category="Investment",
-                    description=f"Investment contribution - {existing.name}", merchant="", date=date.today(),
+                    description=f"Investment contribution - {existing.name}", merchant="",
+                    source="ai_chat", date=date.today(),
                 )
                 db.add(expense)
             db.commit()
@@ -332,7 +334,8 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
             if ca > 0:
                 expense = Expense(
                     user_id=user.id, amount=ca, category="Investment",
-                    description=f"Investment contribution - {goal.name}", merchant="", date=date.today(),
+                    description=f"Investment contribution - {goal.name}", merchant="",
+                    source="ai_chat", date=date.today(),
                 )
                 db.add(expense)
             db.commit()

@@ -80,6 +80,8 @@ class ExpenseOut(BaseModel):
     merchant: str
     use_case: str
     raw_chat_input: str
+    source: str = "manual"
+    import_batch_id: Optional[int] = None
     date: date
     created_at: datetime
 
@@ -343,3 +345,37 @@ class AgentResponse(BaseModel):
     message: str
     data: AgentData
     action: Optional[AgentAction] = None
+
+
+class ImportPreviewRow(BaseModel):
+    date: date
+    description: str
+    amount: float
+    direction: str = ""
+    category_guess: str = "Other"
+    is_duplicate: bool = False
+    dedupe_hash: str = ""
+    include: bool = True
+
+
+class ImportPreviewResponse(BaseModel):
+    bank_name: str
+    rows: list[ImportPreviewRow]
+    duplicate_count: int = 0
+    total_count: int = 0
+
+
+class ImportConfirmRequest(BaseModel):
+    rows: list[ImportPreviewRow]
+
+
+class ImportBatchOut(BaseModel):
+    id: int
+    filename: str
+    bank_name: str
+    row_count: int
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

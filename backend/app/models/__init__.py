@@ -8,6 +8,7 @@ from app.models.user_goal import UserGoal
 from app.models.budget import Budget, BudgetCategory
 from app.models.account import Account
 from app.models.fund import Fund
+from app.models.import_batch import ImportBatch
 
 __all__ = [
     "User",
@@ -21,4 +22,5 @@ __all__ = [
     "BudgetCategory",
     "Account",
     "Fund",
+    "ImportBatch",
 ]

@@ -28,6 +28,7 @@ def chat_expense(data: ExpenseChat, db: Session = Depends(get_db), user: User = 
         merchant=result.get("merchant", ""),
         use_case=data.use_case or result.get("use_case", ""),
         raw_chat_input=data.message,
+        source="ai_chat",
         date=date.today(),
     )
     db.add(expense)

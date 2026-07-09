@@ -15,6 +15,7 @@ import Analyze from './pages/Analyze'
 import Reports from './pages/Reports'
 import Account from './pages/Account'
 import Help from './pages/Help'
+import ImportStatement from './pages/ImportStatement'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -50,6 +51,7 @@ function App() {
             <Route path="reports" element={<Reports />} />
             <Route path="account" element={<Account />} />
             <Route path="help" element={<Help />} />
+            <Route path="import" element={<ImportStatement />} />
           </Route>
           </Routes>
         </AuthProvider>
