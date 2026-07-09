@@ -130,6 +130,7 @@ export default function Goals() {
                       <div>
                         <p className="text-sm font-medium text-ivory">{g.name}</p>
                         <p className="text-xs text-ash mt-0.5">{formatAmount(g.current_amount, currency)} of {formatAmount(g.target_amount, currency)}</p>
+                        <p className="text-xs text-ash/60 mt-0.5">{formatAmount(g.target_amount - g.current_amount, currency)} remaining</p>
                       </div>
                       <button onClick={() => deleteGoal('inv', g.id)} className="text-xs text-ash hover:text-red-400 transition-colors">Remove</button>
                     </div>
