@@ -137,6 +137,22 @@ export interface BudgetCategoryInfo {
   remaining: number
 }
 
+export interface Fund {
+  id: number
+  user_id: number
+  name: string
+  type: string
+  current_amount: number
+  monthly_contribution: number
+  goal_id: number | null
+  created_at: string
+}
+
+export interface AgentAction {
+  type: string
+  payload: Record<string, unknown>
+}
+
 export interface Budget {
   id: number
   user_id: number

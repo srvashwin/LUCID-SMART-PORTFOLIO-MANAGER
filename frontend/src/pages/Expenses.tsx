@@ -4,17 +4,21 @@ import api from '../services/api'
 import type { Expense } from '../types'
 import GlassCard from '../components/GlassCard'
 import PillBadge from '../components/PillBadge'
+import { LoadingList } from '../components/LoadingSkeleton'
+import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 import { getCategoryColor } from '../utils/colors'
 
 export default function Expenses() {
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(new Date().getFullYear())
   const [refreshKey, setRefreshKey] = useState(0)
   const { currency } = useCurrency()
+  const { toast } = useToast()
 
   useEffect(() => {
     const handler = () => setRefreshKey(k => k + 1)
@@ -23,9 +27,12 @@ export default function Expenses() {
   }, [])
 
   useEffect(() => {
+    setLoading(true)
     const params: any = { month, year }
     if (filter) params.category = filter
-    api.get('/expenses', { params }).then(r => setExpenses(r.data)).catch(() => {})
+    api.get('/expenses', { params }).then(r => setExpenses(r.data)).catch(() => {
+      toast('Failed to load expenses', 'error')
+    }).finally(() => setLoading(false))
   }, [filter, month, year, refreshKey])
 
   const total = expenses.reduce((s, e) => s + e.amount, 0)
@@ -81,38 +88,45 @@ export default function Expenses() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[rgba(237,237,243,0.06)]">
-                <th className="text-left px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Date</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Amount</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Category</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Description</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Merchant</th>
+                <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Date</th>
+                <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Amount</th>
+                <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider">Category</th>
+                <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider hidden sm:table-cell">Description</th>
+                <th className="text-left px-4 md:px-5 py-3 text-xs font-medium text-ash uppercase tracking-wider hidden sm:table-cell">Merchant</th>
               </tr>
             </thead>
             <tbody>
-              {expenses.map((exp, i) => (
-                <motion.tr
-                  key={exp.id}
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.02, duration: 0.2 }}
-                  className="border-b border-[rgba(237,237,243,0.03)] hover:bg-[rgba(237,237,243,0.02)] transition-colors"
-                >
-                  <td className="px-5 py-3 text-ash">{exp.date}</td>
-                  <td className="px-5 py-3 text-ivory font-medium">{formatAmount(exp.amount, currency)}</td>
-                  <td className="px-5 py-3">
-                    <span className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getCategoryColor(exp.category) }} />
-                      <PillBadge variant="accent">{exp.category}</PillBadge>
-                    </span>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="p-4">
+                    <LoadingList rows={5} />
                   </td>
-                  <td className="px-5 py-3 text-ash">{exp.description}</td>
-                  <td className="px-5 py-3 text-ash">{exp.merchant}</td>
-                </motion.tr>
-              ))}
-              {expenses.length === 0 && (
+                </tr>
+              ) : expenses.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center py-12 text-ash text-sm">No expenses found for this period</td>
                 </tr>
+              ) : (
+                expenses.map((exp, i) => (
+                  <motion.tr
+                    key={exp.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.02, duration: 0.2 }}
+                    className="border-b border-[rgba(237,237,243,0.03)] hover:bg-[rgba(237,237,243,0.02)] transition-colors"
+                  >
+                    <td className="px-4 md:px-5 py-3 text-ash whitespace-nowrap">{exp.date}</td>
+                    <td className="px-4 md:px-5 py-3 text-ivory font-medium whitespace-nowrap">{formatAmount(exp.amount, currency)}</td>
+                    <td className="px-4 md:px-5 py-3">
+                      <span className="flex items-center gap-2 whitespace-nowrap">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getCategoryColor(exp.category) }} />
+                        <PillBadge variant="accent">{exp.category}</PillBadge>
+                      </span>
+                    </td>
+                    <td className="px-4 md:px-5 py-3 text-ash hidden sm:table-cell">{exp.description}</td>
+                    <td className="px-4 md:px-5 py-3 text-ash hidden sm:table-cell">{exp.merchant}</td>
+                  </motion.tr>
+                ))
               )}
             </tbody>
           </table>

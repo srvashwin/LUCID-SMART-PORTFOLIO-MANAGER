@@ -1,17 +1,22 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import api from '../services/api'
-import type { InvestmentGoal, UserGoal } from '../types'
+import type { InvestmentGoal, UserGoal, Fund } from '../types'
 import GlassCard from '../components/GlassCard'
 import PillButton from '../components/PillButton'
 import ProgressRing from '../components/ProgressRing'
 import InvestmentAssistant from '../components/InvestmentAssistant'
+import ConfirmDialog from '../components/ConfirmDialog'
+import { LoadingCard } from '../components/LoadingSkeleton'
+import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 
 export default function Goals() {
   const [invGoals, setInvGoals] = useState<InvestmentGoal[]>([])
   const [userGoals, setUserGoals] = useState<UserGoal[]>([])
+  const [funds, setFunds] = useState<Fund[]>([])
+  const [loading, setLoading] = useState(true)
 
   const [invName, setInvName] = useState('')
   const [invTarget, setInvTarget] = useState('')
@@ -25,11 +30,20 @@ export default function Goals() {
   const [goalTargetDate, setGoalTargetDate] = useState('')
   const [timeline, setTimeline] = useState<{ required: number; months: number; onTrack: boolean } | null>(null)
 
-  const fetch = () => {
-    api.get('/goals/investment').then(r => setInvGoals(r.data)).catch(() => {})
-    api.get('/goals/user-goals').then(r => setUserGoals(r.data)).catch(() => {})
-  }
+  const [confirmType, setConfirmType] = useState<'inv' | 'user' | null>(null)
+  const [confirmId, setConfirmId] = useState<number | null>(null)
+
   const { currency } = useCurrency()
+  const { toast } = useToast()
+
+  const fetch = () => {
+    setLoading(true)
+    Promise.all([
+      api.get('/goals/investment').then(r => setInvGoals(r.data)),
+      api.get('/goals/user-goals').then(r => setUserGoals(r.data)),
+      api.get('/funds').then(r => setFunds(r.data)),
+    ]).catch(() => {}).finally(() => setLoading(false))
+  }
   useEffect(fetch, [])
 
   useEffect(() => {
@@ -53,153 +67,230 @@ export default function Goals() {
 
   const addInvGoal = async (e: React.FormEvent) => {
     e.preventDefault()
-    await api.post('/goals/investment', {
-      name: invName,
-      target_amount: Number(invTarget),
-      current_amount: Number(invCurrent) || 0,
-      monthly_contribution: Number(invMonthly) || 0,
-      expected_return_rate: Number(invRate),
-      start_date: new Date().toISOString().split('T')[0],
-    })
-    setInvName(''); setInvTarget(''); setInvMonthly(''); setInvRate('7'); setInvCurrent('')
-    fetch()
+    try {
+      await api.post('/goals/investment', {
+        name: invName,
+        target_amount: Number(invTarget),
+        current_amount: Number(invCurrent) || 0,
+        monthly_contribution: Number(invMonthly) || 0,
+        expected_return_rate: Number(invRate),
+        start_date: new Date().toISOString().split('T')[0],
+      })
+      setInvName(''); setInvTarget(''); setInvMonthly(''); setInvRate('7'); setInvCurrent('')
+      toast('Investment goal created', 'success')
+      fetch()
+    } catch {
+      toast('Failed to create goal', 'error')
+    }
   }
 
   const addUserGoal = async (e: React.FormEvent) => {
     e.preventDefault()
-    await api.post('/goals/user-goals', {
-      type: goalType,
-      target_amount: Number(goalTarget),
-      monthly_contribution: Number(goalMonthly) || 0,
-      target_date: goalTargetDate || null,
-      expected_return_rate: 7,
-    })
-    setGoalTarget(''); setGoalMonthly(''); setGoalTargetDate(''); setTimeline(null)
-    fetch()
+    try {
+      await api.post('/goals/user-goals', {
+        type: goalType,
+        target_amount: Number(goalTarget),
+        monthly_contribution: Number(goalMonthly) || 0,
+        target_date: goalTargetDate || null,
+        expected_return_rate: 7,
+      })
+      setGoalTarget(''); setGoalMonthly(''); setGoalTargetDate(''); setTimeline(null)
+      toast('Savings goal created', 'success')
+      fetch()
+    } catch {
+      toast('Failed to create goal', 'error')
+    }
   }
 
-  const deleteGoal = async (type: 'inv' | 'user', id: number) => {
-    if (type === 'inv') await api.delete(`/goals/investment/${id}`)
-    else await api.delete(`/goals/user-goals/${id}`)
-    fetch()
+  const confirmDelete = (type: 'inv' | 'user', id: number) => {
+    setConfirmType(type)
+    setConfirmId(id)
+  }
+
+  const handleDelete = async () => {
+    if (confirmId === null || !confirmType) return
+    const id = confirmId
+    const type = confirmType
+    setConfirmType(null)
+    setConfirmId(null)
+    try {
+      if (type === 'inv') await api.delete(`/goals/investment/${id}`)
+      else await api.delete(`/goals/user-goals/${id}`)
+      toast('Goal removed', 'success')
+      fetch()
+    } catch {
+      toast('Failed to delete goal', 'error')
+    }
   }
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={confirmId !== null}
+        title="Remove Goal?"
+        message="This will permanently delete this goal."
+        confirmLabel="Remove"
+        onConfirm={handleDelete}
+        onCancel={() => { setConfirmType(null); setConfirmId(null) }}
+      />
+
       <div className="animate-fade-in">
         <h1 className="text-3xl font-semibold text-ivory" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>Investments & Savings</h1>
         <p className="text-ash text-sm mt-1">Set and track investment plans and savings targets</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Investment Goals */}
-        <GlassCard className="p-5" hover={false}>
-          <h2 className="text-lg font-semibold text-ivory mb-4" style={{ fontWeight: 600 }}>Investment Plans</h2>
-          <form onSubmit={addInvGoal} className="space-y-3 mb-6">
-            <input type="text" placeholder="Goal name" value={invName} onChange={e => setInvName(e.target.value)} required
-              className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
-            <div className="flex gap-2">
-              <input type="number" placeholder="Target amount" value={invTarget} onChange={e => setInvTarget(e.target.value)} required
-                className="flex-1 px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
-              <input type="number" placeholder="Current" value={invCurrent} onChange={e => setInvCurrent(e.target.value)}
-                className="flex-1 px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
-            </div>
-            <div className="flex gap-2">
-              <input type="number" placeholder="Monthly contribution" value={invMonthly} onChange={e => setInvMonthly(e.target.value)}
-                className="flex-1 px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
-              <input type="number" placeholder="Return %" value={invRate} onChange={e => setInvRate(e.target.value)}
-                className="w-28 px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
-            </div>
-            <PillButton type="submit" className="w-full">Add Investment Goal</PillButton>
-          </form>
+      {loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <LoadingCard />
+          <LoadingCard />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Investment Goals */}
+          <GlassCard className="p-5" hover={false}>
+            <h2 className="text-lg font-semibold text-ivory mb-4" style={{ fontWeight: 600 }}>Investment Plans</h2>
+            <form onSubmit={addInvGoal} className="space-y-3 mb-6">
+              <input type="text" placeholder="Goal name" value={invName} onChange={e => setInvName(e.target.value)} required
+                className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input type="number" placeholder="Target amount" value={invTarget} onChange={e => setInvTarget(e.target.value)} required
+                  className="flex-1 px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
+                <input type="number" placeholder="Current" value={invCurrent} onChange={e => setInvCurrent(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input type="number" placeholder="Monthly contribution" value={invMonthly} onChange={e => setInvMonthly(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
+                <input type="number" placeholder="Return %" value={invRate} onChange={e => setInvRate(e.target.value)}
+                  className="w-full sm:w-28 px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
+              </div>
+              <PillButton type="submit" className="w-full">Add Investment Goal</PillButton>
+            </form>
 
-          <div className="space-y-3">
-            {invGoals.map((g, i) => {
-              const pct = g.target_amount > 0 ? (g.current_amount / g.target_amount) * 100 : 0
-              return (
+            <div className="space-y-3">
+              {invGoals.map((g, i) => {
+                const pct = g.target_amount > 0 ? (g.current_amount / g.target_amount) * 100 : 0
+                return (
+                  <motion.div
+                    key={g.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="bg-[rgba(237,237,243,0.03)] rounded-xl p-4 flex items-center gap-4"
+                  >
+                    <ProgressRing progress={pct} size={64} strokeWidth={4} label={`${Math.round(pct)}%`} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium text-ivory">{g.name}</p>
+                          <p className="text-xs text-ash mt-0.5">{formatAmount(g.current_amount, currency)} of {formatAmount(g.target_amount, currency)}</p>
+                          <p className="text-xs text-ash/60 mt-0.5">{formatAmount(g.target_amount - g.current_amount, currency)} remaining</p>
+                        </div>
+                        <button onClick={() => confirmDelete('inv', g.id)} className="text-xs text-ash hover:text-red-400 transition-colors shrink-0 ml-2">Remove</button>
+                      </div>
+                      <p className="text-xs text-ash mt-2">{formatAmount(g.monthly_contribution, currency)}/mo at {g.expected_return_rate}% APY</p>
+                    </div>
+                  </motion.div>
+                )
+              })}
+              {invGoals.length === 0 && <p className="text-sm text-ash text-center py-4">No investment goals yet</p>}
+            </div>
+          </GlassCard>
+
+          {/* Savings Goals */}
+          <GlassCard className="p-5" hover={false}>
+            <h2 className="text-lg font-semibold text-ivory mb-4" style={{ fontWeight: 600 }}>Savings Goals</h2>
+            <form onSubmit={addUserGoal} className="space-y-3 mb-6">
+              <select value={goalType} onChange={e => setGoalType(e.target.value)}
+                className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors">
+                <option value="yearly_savings">Yearly Savings</option>
+                <option value="investment_return">Investment Return</option>
+              </select>
+              <input type="number" placeholder="Target amount" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} required
+                className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
+              <input type="date" value={goalTargetDate} onChange={e => setGoalTargetDate(e.target.value)}
+                className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors" />
+              <input type="number" placeholder="Monthly contribution" value={goalMonthly} onChange={e => setGoalMonthly(e.target.value)}
+                className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
+
+              {timeline && (
+                <div className="bg-[rgba(82,102,235,0.06)] rounded-lg p-3 space-y-1">
+                  <p className="text-xs text-ash">
+                    Need <span className="text-ivory font-medium">{formatAmount(timeline.required, currency)}/mo</span> for {timeline.months} months
+                  </p>
+                  <p className={`text-xs ${timeline.onTrack ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {timeline.onTrack ? 'On track with current contribution' : `Increase by ${formatAmount(timeline.required - Number(goalMonthly || 0), currency)}/mo`}
+                  </p>
+                </div>
+              )}
+
+              <PillButton type="submit" className="w-full">Add Savings Goal</PillButton>
+            </form>
+
+            <div className="space-y-3">
+              {userGoals.map((g, i) => (
                 <motion.div
                   key={g.id}
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  className="bg-[rgba(237,237,243,0.03)] rounded-xl p-4 flex items-center gap-4"
+                  className="bg-[rgba(237,237,243,0.03)] rounded-xl p-4"
                 >
-                  <ProgressRing progress={pct} size={64} strokeWidth={4} label={`${Math.round(pct)}%`} />
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm font-medium text-ivory">{g.name}</p>
-                        <p className="text-xs text-ash mt-0.5">{formatAmount(g.current_amount, currency)} of {formatAmount(g.target_amount, currency)}</p>
-                        <p className="text-xs text-ash/60 mt-0.5">{formatAmount(g.target_amount - g.current_amount, currency)} remaining</p>
-                      </div>
-                      <button onClick={() => deleteGoal('inv', g.id)} className="text-xs text-ash hover:text-red-400 transition-colors">Remove</button>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-ivory capitalize">{g.type.replace('_', ' ')}</p>
+                      <p className="text-xs text-ash mt-0.5">Target: {formatAmount(g.target_amount, currency)}</p>
+                      {g.target_date && <p className="text-xs text-ash">by {g.target_date}</p>}
                     </div>
-                    <p className="text-xs text-ash mt-2">{formatAmount(g.monthly_contribution, currency)}/mo at {g.expected_return_rate}% APY</p>
+                    <button onClick={() => confirmDelete('user', g.id)} className="text-xs text-ash hover:text-red-400 transition-colors shrink-0 ml-2">Remove</button>
                   </div>
+                  <p className="text-xs text-ash mt-2">{formatAmount(g.monthly_contribution, currency)}/mo at {g.expected_return_rate}%</p>
+                  {g.target_date && g.target_amount > 0 && (
+                    <TimelineBadge targetAmount={g.target_amount} targetDate={g.target_date} monthly={g.monthly_contribution} />
+                  )}
+                </motion.div>
+              ))}
+              {userGoals.length === 0 && <p className="text-sm text-ash text-center py-4">No savings goals yet</p>}
+            </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {/* Funds */}
+      {!loading && funds.length > 0 && (
+        <GlassCard className="p-5" hover={false}>
+          <h2 className="text-lg font-semibold text-ivory mb-4" style={{ fontWeight: 600 }}>Savings Funds</h2>
+          <p className="text-xs text-ash mb-4">Funds accumulate money that works toward your goals</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {funds.map((f, i) => {
+              const linkedGoal = userGoals.find(g => g.id === f.goal_id)
+              const pct = linkedGoal && linkedGoal.target_amount > 0
+                ? (f.current_amount / linkedGoal.target_amount) * 100 : 0
+              return (
+                <motion.div
+                  key={f.id}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="bg-[rgba(237,237,243,0.03)] rounded-xl p-4"
+                >
+                  <p className="text-sm font-medium text-ivory">{f.name}</p>
+                  <p className="text-lg font-semibold text-ivory mt-1">{formatAmount(f.current_amount, currency)}</p>
+                  {linkedGoal && (
+                    <div className="mt-2">
+                      <div className="w-full h-1.5 bg-[rgba(237,237,243,0.06)] rounded-full overflow-hidden">
+                        <div className="h-full rounded-full bg-[#5266eb]" style={{ width: `${Math.min(100, pct)}%` }} />
+                      </div>
+                      <p className="text-xs text-ash mt-1">{Math.round(pct)}% toward {linkedGoal.type.replace('_', ' ')}</p>
+                    </div>
+                  )}
+                  <p className="text-xs text-ash mt-2">{formatAmount(f.monthly_contribution, currency)}/mo</p>
                 </motion.div>
               )
             })}
-            {invGoals.length === 0 && <p className="text-sm text-ash text-center py-4">No investment goals yet</p>}
           </div>
         </GlassCard>
-
-        {/* Savings Goals */}
-        <GlassCard className="p-5" hover={false}>
-          <h2 className="text-lg font-semibold text-ivory mb-4" style={{ fontWeight: 600 }}>Savings Goals</h2>
-          <form onSubmit={addUserGoal} className="space-y-3 mb-6">
-            <select value={goalType} onChange={e => setGoalType(e.target.value)}
-              className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors">
-              <option value="yearly_savings">Yearly Savings</option>
-              <option value="investment_return">Investment Return</option>
-            </select>
-            <input type="number" placeholder="Target amount" value={goalTarget} onChange={e => setGoalTarget(e.target.value)} required
-              className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
-            <input type="date" value={goalTargetDate} onChange={e => setGoalTargetDate(e.target.value)}
-              className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors" />
-            <input type="number" placeholder="Monthly contribution" value={goalMonthly} onChange={e => setGoalMonthly(e.target.value)}
-              className="w-full px-4 py-2.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]" />
-
-            {timeline && (
-              <div className="bg-[rgba(82,102,235,0.06)] rounded-lg p-3 space-y-1">
-                <p className="text-xs text-ash">
-                  Need <span className="text-ivory font-medium">{formatAmount(timeline.required, currency)}/mo</span> for {timeline.months} months
-                </p>
-                <p className={`text-xs ${timeline.onTrack ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {timeline.onTrack ? 'On track with current contribution' : `Increase by ${formatAmount(timeline.required - Number(goalMonthly || 0), currency)}/mo`}
-                </p>
-              </div>
-            )}
-
-            <PillButton type="submit" className="w-full">Add Savings Goal</PillButton>
-          </form>
-
-          <div className="space-y-3">
-            {userGoals.map((g, i) => (
-              <motion.div
-                key={g.id}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="bg-[rgba(237,237,243,0.03)] rounded-xl p-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-sm font-medium text-ivory capitalize">{g.type.replace('_', ' ')}</p>
-                    <p className="text-xs text-ash mt-0.5">Target: {formatAmount(g.target_amount, currency)}</p>
-                    {g.target_date && <p className="text-xs text-ash">by {g.target_date}</p>}
-                  </div>
-                  <button onClick={() => deleteGoal('user', g.id)} className="text-xs text-ash hover:text-red-400 transition-colors">Remove</button>
-                </div>
-                <p className="text-xs text-ash mt-2">{formatAmount(g.monthly_contribution, currency)}/mo at {g.expected_return_rate}%</p>
-                {g.target_date && g.target_amount > 0 && (
-                  <TimelineBadge targetAmount={g.target_amount} targetDate={g.target_date} monthly={g.monthly_contribution} />
-                )}
-              </motion.div>
-            ))}
-            {userGoals.length === 0 && <p className="text-sm text-ash text-center py-4">No savings goals yet</p>}
-          </div>
-        </GlassCard>
-      </div>
+      )}
 
       <InvestmentAssistant />
     </div>

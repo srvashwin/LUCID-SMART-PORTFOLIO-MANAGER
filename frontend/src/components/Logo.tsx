@@ -1,21 +1,32 @@
 export default function Logo({ size = 28, showText = true }: { size?: number; showText?: boolean }) {
   return (
-    <div className="flex items-center gap-3">
-      <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+    <div className="flex items-center gap-2.5">
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="logo-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#5266eb" />
-            <stop offset="1" stopColor="#3b4fd9" />
+          <linearGradient id="lucid-bar-1" x1="0" y1="32" x2="0" y2="8" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#3b4fd9" />
+            <stop offset="1" stopColor="#5266eb" />
+          </linearGradient>
+          <linearGradient id="lucid-bar-2" x1="0" y1="32" x2="0" y2="4" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#4256dd" />
+            <stop offset="1" stopColor="#7c8bf0" />
+          </linearGradient>
+          <linearGradient id="lucid-bar-3" x1="0" y1="32" x2="0" y2="1" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#4a5be0" />
+            <stop offset="1" stopColor="#aebbff" />
           </linearGradient>
         </defs>
-        <path d="M16 2L30 10v12L16 30 2 22V10L16 2z" fill="url(#logo-grad)" opacity="0.15" />
-        <path d="M16 6L26 12v8L16 26 6 20V12L16 6z" fill="url(#logo-grad)" opacity="0.3" />
-        <path d="M16 10L22 13.5v7L16 24l-6-3.5v-7L16 10z" fill="url(#logo-grad)" />
-        <path d="M16 10L22 13.5v7L16 24l-6-3.5v-7L16 10z" fill="white" fillOpacity="0.2" />
+        <rect x="3" y="19" width="5" height="10" rx="2.2" fill="url(#lucid-bar-1)" opacity="0.55" />
+        <rect x="10.5" y="13" width="5" height="16" rx="2.2" fill="url(#lucid-bar-2)" opacity="0.8" />
+        <rect x="18" y="6" width="5" height="23" rx="2.2" fill="url(#lucid-bar-3)" />
+        <circle cx="20.5" cy="4.4" r="2.1" fill="#dfe4ff" />
       </svg>
       {showText && (
-        <span className="text-lg font-semibold tracking-[0.08em] text-ivory" style={{ fontWeight: 600 }}>
-          LUCID
+        <span
+          className="text-lg text-ivory"
+          style={{ fontWeight: 700, letterSpacing: '-0.01em' }}
+        >
+          Lucid
         </span>
       )}
     </div>

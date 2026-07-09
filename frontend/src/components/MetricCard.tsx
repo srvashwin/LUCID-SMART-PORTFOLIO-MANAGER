@@ -16,7 +16,7 @@ export default function MetricCard({ label, value, trend, trendUp, delay = 0 }: 
       <p className="text-3xl font-semibold text-ivory" style={{ fontWeight: 600 }}>{value}</p>
       {trend && (
         <p className={`text-xs mt-1.5 ${trendUp ? 'text-green-400' : 'text-red-400'}`}>
-          {trendUp ? '\u2191' : '\u2193'} {trend}
+          {trend}
         </p>
       )}
     </div>

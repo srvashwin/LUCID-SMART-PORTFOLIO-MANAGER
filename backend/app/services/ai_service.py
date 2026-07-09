@@ -295,10 +295,11 @@ def process_agent_message(message: str, currency_code: str = "USD") -> dict:
     prompt = f"""You are a financial assistant. Given a user's message, classify their intent and extract structured data.
 
 Intents and their required fields:
-- "add_income": amount (float), frequency ("weekly"/"biweekly"/"monthly"/"yearly"), source (string)
+- "add_income": amount (float), frequency ("weekly"/"biweekly"/"monthly"/"yearly"), source (string), increment (boolean — true if user said "increased by", "raised by", "raise", "bonus", "went up", "got a raise", "extra"; false if they said "my income is", "I earn", "I make")
 - "add_expense": amount (float), category (string), description (string), merchant (string)
 - "add_investment_goal": name (string), target_amount (float), monthly_contribution (float, default 0)
 - "add_investment": monthly_contribution (float), current_amount (float, default 0) — for recording contributions or monthly amounts being invested toward an existing goal; NOT for creating new goals
+- "add_to_fund": amount (float), name (string, default "Savings Fund") — for adding money to an existing savings/investment fund; NOT for creating new goals
 - "add_savings_goal": type ("yearly_savings"/"investment_return"), target_amount (float), monthly_contribution (float, default 0)
 - "add_spending_rule": category (string), max_amount (float), period ("monthly"/"weekly")
 - "change_currency": currency (string — one of USD, EUR, GBP, JPY, CAD, AUD, CHF, CNY, INR, MXN, BRL, KRW, SEK, NOK, NZD, SGD, HKD, THB, ZAR, AED)
@@ -310,8 +311,10 @@ Return ONLY a JSON object with:
 
 Message: "{message}"
 
-Example response:
-{{"intent": "add_income", "data": {{"amount": 5000, "frequency": "monthly", "source": "salary"}}, "message": "I'll add {sym}5000/month income from salary."}}
+Examples:
+- {{"intent": "add_income", "data": {{"amount": 5000, "frequency": "monthly", "source": "salary"}}, "message": "I'll add {sym}5000/month income from salary."}}
+- {{"intent": "add_to_fund", "data": {{"amount": 1000, "name": "Savings Fund"}}, "message": "I'll add {sym}1000 to your Savings Fund."}}
+- {{"intent": "add_to_fund", "data": {{"amount": 500, "name": "Emergency Fund"}}, "message": "I'll add {sym}500 to your Emergency Fund."}}
 
 Return ONLY valid JSON. No markdown."""
 
@@ -336,9 +339,10 @@ Return ONLY valid JSON. No markdown."""
             elif any(w in lower for w in ["yearly", "annual", "per year"]):
                 freq = "yearly"
             source = "salary" if "salary" in lower else "income"
+            is_increment = any(w in lower for w in ["increase", "raised", "raise", "bonus", "went up", "got a raise", "increment", "extra", "added"])
             return {
                 "intent": "add_income",
-                "data": {"amount": amount, "frequency": freq, "source": source},
+                "data": {"amount": amount, "frequency": freq, "source": source, "increment": is_increment},
                 "message": f"I'll add {sym}{amount:.2f}/{freq} income from {source}.",
             }
 
@@ -386,7 +390,28 @@ Return ONLY valid JSON. No markdown."""
                 "message": f"I'll add {sym}{amount:.2f} to your investments.",
             }
 
-        if any(w in lower for w in ["save", "saving", "goal", "target", "house", "fund", "emergency", "down payment", "college", "vacation", "car", "wedding", "rainy day", "nest egg"]):
+        add_to_fund_phrases = ["add to savings", "put in savings", "add to fund", "put in fund", "add to my savings", "savings fund", "saving fund", "contribute to savings", "contribute to fund"]
+        has_fund_keyword = "saving" in lower or "savings" in lower or "fund" in lower
+        has_add_keyword = any(w in lower for w in ["add", "put", "contribute", "extra", "added", "adding"])
+        if any(k in lower for k in add_to_fund_phrases) or (has_fund_keyword and has_add_keyword):
+            fund_name = "Savings Fund"
+            if "emergency" in lower:
+                fund_name = "Emergency Fund"
+            elif "vacation" in lower:
+                fund_name = "Vacation Fund"
+            elif "house" in lower or "down payment" in lower:
+                fund_name = "House Fund"
+            elif "car" in lower:
+                fund_name = "Car Fund"
+            elif "college" in lower or "education" in lower:
+                fund_name = "Education Fund"
+            return {
+                "intent": "add_to_fund",
+                "data": {"amount": round(amount, 2) if amount > 0 else 0, "name": fund_name},
+                "message": f"I'll add {sym}{amount:.2f} to your {fund_name}.",
+            }
+
+        if any(w in lower for w in ["save", "saving", "goal", "target", "house", "emergency", "down payment", "college", "vacation", "car", "wedding", "rainy day", "nest egg"]):
             target = amount if amount > 0 else 10000
             monthly = target / 60
             return {

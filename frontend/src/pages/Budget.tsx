@@ -5,6 +5,7 @@ import type { Budget } from '../types'
 import GlassCard from '../components/GlassCard'
 import PillButton from '../components/PillButton'
 import MetricCard from '../components/MetricCard'
+import { useToast } from '../components/Toast'
 import { formatAmount, getCurrencySymbol } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 import { CATEGORY_COLORS } from '../utils/colors'
@@ -25,6 +26,7 @@ export default function BudgetPage() {
   const [year, setYear] = useState(new Date().getFullYear())
   const { currency } = useCurrency()
   const symbol = getCurrencySymbol(currency)
+  const { toast } = useToast()
 
   useEffect(() => {
     const handler = () => setRefreshKey(k => k + 1)
@@ -58,7 +60,7 @@ export default function BudgetPage() {
       }
       setAssignments(map)
     } catch {
-      // handle error
+      toast('Failed to load budget', 'error')
     } finally {
       setLoading(false)
     }
@@ -87,8 +89,9 @@ export default function BudgetPage() {
         await api.put(`/budgets/${budget.id}`, { total_income: income })
       }
       await fetchBudget()
+      toast('Budget saved', 'success')
     } catch {
-      // handle error
+      toast('Failed to save budget', 'error')
     } finally {
       setSaving(false)
     }
@@ -224,7 +227,7 @@ export default function BudgetPage() {
                   type="number"
                   value={income}
                   onChange={(e) => setIncome(Number(e.target.value))}
-                  className="pl-8 pr-4 py-2 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors w-36"
+                  className="pl-8 pr-4 py-2 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors w-full sm:w-36"
                 />
               </div>
               <span className="text-xs text-ash">Auto-filled from latest income record</span>
@@ -247,15 +250,17 @@ export default function BudgetPage() {
                   transition={{ delay: i * 0.03 }}
                 >
                   <GlassCard className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: CATEGORY_COLORS[cat.category] || '#6b7280' }}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-2 gap-2">
-                          <span className="text-sm text-ivory font-medium truncate">{cat.category}</span>
-                          <div className="flex items-center gap-3 shrink-0">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+                      <div className="flex items-center gap-2 sm:gap-0 sm:block w-full sm:w-auto">
+                        <div
+                          className="w-2.5 h-2.5 rounded-full shrink-0 sm:mb-2"
+                          style={{ backgroundColor: CATEGORY_COLORS[cat.category] || '#6b7280' }}
+                        />
+                        <span className="text-sm text-ivory font-medium ml-2 sm:ml-0">{cat.category}</span>
+                      </div>
+                      <div className="flex-1 min-w-0 w-full">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-3">
                             <div className="relative">
                               <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-ash">{symbol}</span>
                               <input
@@ -269,11 +274,11 @@ export default function BudgetPage() {
                                 className="w-24 pl-7 pr-2.5 py-1.5 bg-[#272735] text-ivory rounded-lg text-xs border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]"
                               />
                             </div>
-                            <span className="text-xs text-ash w-16 text-right tabular-nums">
+                            <span className="text-xs text-ash tabular-nums whitespace-nowrap">
                               Spent: {formatAmount(spent, currency)}
                             </span>
                             <span
-                              className={`text-xs font-medium w-16 text-right tabular-nums ${
+                              className={`text-xs font-medium tabular-nums whitespace-nowrap ${
                                 remaining >= 0 ? 'text-emerald-400' : 'text-red-400'
                               }`}
                             >
@@ -282,7 +287,7 @@ export default function BudgetPage() {
                             </span>
                           </div>
                         </div>
-                        <div className="w-full h-1.5 bg-[rgba(237,237,243,0.06)] rounded-full overflow-hidden">
+                        <div className="w-full h-1.5 bg-[rgba(237,237,243,0.06)] rounded-full overflow-hidden mt-2">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${
                               spent > assigned ? 'bg-red-400' : 'bg-[#5266eb]'

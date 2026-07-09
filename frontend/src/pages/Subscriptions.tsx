@@ -5,6 +5,7 @@ import type { SubscriptionDetectResponse } from '../types'
 import GlassCard from '../components/GlassCard'
 import MetricCard from '../components/MetricCard'
 import PillBadge from '../components/PillBadge'
+import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 
@@ -13,11 +14,12 @@ export default function Subscriptions() {
   const [loading, setLoading] = useState(true)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const { currency } = useCurrency()
+  const { toast } = useToast()
 
   useEffect(() => {
     api.get('/subscriptions/detect')
       .then(r => setData(r.data))
-      .catch(() => {})
+      .catch(() => toast('Failed to detect subscriptions', 'error'))
       .finally(() => setLoading(false))
   }, [])
 

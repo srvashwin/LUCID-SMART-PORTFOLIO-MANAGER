@@ -4,6 +4,7 @@ import api from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 import GlassCard from '../components/GlassCard'
 import PillButton from '../components/PillButton'
+import { useToast } from '../components/Toast'
 import { getAllCurrencies } from '../utils/format'
 
 export default function Account() {
@@ -12,10 +13,12 @@ export default function Account() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [saved, setSaved] = useState('')
+  const { toast } = useToast()
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault()
     setSaved('password')
+    toast('Password updated', 'success')
     setTimeout(() => setSaved(''), 2000)
   }
 
@@ -25,8 +28,11 @@ export default function Account() {
       await api.patch('/auth/me', { currency: newCurrency })
       await refreshUser()
       setSaved('currency')
+      toast('Currency updated', 'success')
       setTimeout(() => setSaved(''), 2000)
-    } catch {}
+    } catch {
+      toast('Failed to update currency', 'error')
+    }
   }
 
   if (!user) return null
@@ -39,22 +45,22 @@ export default function Account() {
       </div>
 
       {/* Profile */}
-      <GlassCard className="p-6" hover={false}>
+      <GlassCard className="p-4 md:p-6" hover={false}>
         <h2 className="text-sm font-medium text-ivory mb-4" style={{ fontWeight: 500 }}>Profile</h2>
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-full bg-[rgba(82,102,235,0.15)] flex items-center justify-center text-xl font-semibold text-[#9cb4e8]">
+          <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-[rgba(82,102,235,0.15)] flex items-center justify-center text-lg md:text-xl font-semibold text-[#9cb4e8] shrink-0">
             {user.name.charAt(0).toUpperCase()}
           </div>
-          <div>
-            <p className="text-base font-medium text-ivory">{user.name}</p>
-            <p className="text-sm text-ash">{user.email}</p>
+          <div className="min-w-0">
+            <p className="text-base font-medium text-ivory truncate">{user.name}</p>
+            <p className="text-sm text-ash truncate">{user.email}</p>
             <p className="text-xs text-ash mt-0.5">Member since {new Date(user.created_at).toLocaleDateString()}</p>
           </div>
         </div>
       </GlassCard>
 
       {/* Security */}
-      <GlassCard className="p-6" hover={false}>
+      <GlassCard className="p-4 md:p-6" hover={false}>
         <h2 className="text-sm font-medium text-ivory mb-4" style={{ fontWeight: 500 }}>Change Password</h2>
         <form onSubmit={handleChangePassword} className="space-y-3">
           <input
@@ -90,7 +96,7 @@ export default function Account() {
       </GlassCard>
 
       {/* Preferences */}
-      <GlassCard className="p-6" hover={false}>
+      <GlassCard className="p-4 md:p-6" hover={false}>
         <h2 className="text-sm font-medium text-ivory mb-4" style={{ fontWeight: 500 }}>Preferences</h2>
         <div className="space-y-4">
           <div>
@@ -121,7 +127,7 @@ export default function Account() {
       </GlassCard>
 
       {/* Danger Zone */}
-      <GlassCard className="p-6 border border-red-400/20" hover={false}>
+      <GlassCard className="p-4 md:p-6 border border-red-400/20" hover={false}>
         <h2 className="text-sm font-medium text-red-400 mb-2">Danger Zone</h2>
         <p className="text-xs text-ash mb-3">Permanently delete your account and all data. This action cannot be undone.</p>
         <PillButton variant="outline" className="border-red-400 text-red-400 hover:bg-red-400/10">

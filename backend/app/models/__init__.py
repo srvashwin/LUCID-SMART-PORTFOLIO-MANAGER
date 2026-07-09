@@ -7,6 +7,7 @@ from app.models.investment_goal import InvestmentGoal
 from app.models.user_goal import UserGoal
 from app.models.budget import Budget, BudgetCategory
 from app.models.account import Account
+from app.models.fund import Fund
 
 __all__ = [
     "User",
@@ -19,4 +20,5 @@ __all__ = [
     "Budget",
     "BudgetCategory",
     "Account",
+    "Fund",
 ]

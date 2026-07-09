@@ -298,6 +298,33 @@ class BudgetOut(BaseModel):
         from_attributes = True
 
 
+class FundCreate(BaseModel):
+    name: str
+    type: str = "savings"
+    current_amount: float = 0.0
+    monthly_contribution: float = 0.0
+    goal_id: Optional[int] = None
+
+
+class FundOut(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    type: str
+    current_amount: float
+    monthly_contribution: float
+    goal_id: Optional[int]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AgentAction(BaseModel):
+    type: str
+    payload: dict
+
+
 class AgentRequest(BaseModel):
     message: str
 
@@ -308,9 +335,11 @@ class AgentData(BaseModel):
     goal: Optional[dict] = None
     rule: Optional[dict] = None
     currency: Optional[str] = None
+    fund: Optional[dict] = None
 
 
 class AgentResponse(BaseModel):
     intent: str
     message: str
     data: AgentData
+    action: Optional[AgentAction] = None

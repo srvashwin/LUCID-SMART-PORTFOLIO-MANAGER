@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import api from '../services/api'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
+import { useAuth } from '../hooks/useAuth'
 
 type Message = { role: 'bot' | 'user'; text: string; result?: AgentResult }
+type AgentIntent = 'add_income' | 'add_expense' | 'add_investment_goal' | 'add_savings_goal' | 'add_to_fund' | 'add_spending_rule' | 'change_currency' | 'general'
 
 interface AgentResult {
-  intent: string
+  intent: AgentIntent
   message: string
   data: {
     income?: { amount: number; frequency: string; source: string }
@@ -15,7 +17,9 @@ interface AgentResult {
     goal?: { name?: string; type?: string; target_amount: number; monthly_contribution: number }
     rule?: { category: string; max_amount: number; period: string }
     currency?: string
+    fund?: { name: string; amount: number; type: string }
   }
+  action?: { type: string; payload: Record<string, unknown> }
 }
 
 const knowledgeBase: Record<string, string> = {
@@ -46,8 +50,8 @@ const knowledgeBase: Record<string, string> = {
   'credit card': 'Add credit cards on the Accounts page as a "Credit Card" type. The balance will show up as a debt on your Dashboard.',
   'budget': 'The Budget page lets you plan your spending. First add your income on the Assistant page, then go to Budget to assign each category a limit.',
   'net worth': 'Your net worth is calculated on the Accounts page as Total Assets minus Total Liabilities. Add all your accounts there to see your true net worth.',
-  'hello': 'Hey! Welcome to Lucid. I can help you add expenses, set income, create goals, and more. Try saying "add expense" or "how do I get started?"',
-  'hi': 'Hey! Welcome to Lucid. I can help you add expenses, set income, create goals, and more. Try saying "add expense" or "how do I get started?"',
+  'hello': 'Hey {name}! Welcome to Lucid. I can help you add expenses, set income, create goals, and more. Try saying "add expense" or "how do I get started?"',
+  'hi': 'Hey {name}! Welcome to Lucid. I can help you add expenses, set income, create goals, and more. Try saying "add expense" or "how do I get started?"',
   'thanks': "You're welcome! Let me know if you need anything else.",
   'who are you': "I'm Lucid Assistant! I can help you manage your finances, add expenses, set goals, track debt, and more. Try typing something like 'spent $20 on lunch' or 'set a savings goal of $5000'.",
   'start': 'To get started with Lucid: 1) Add your income on the Assistant page ("I earn $4000/month"), 2) Log expenses as they happen, 3) Set a budget on the Budget page, 4) Add accounts on the Accounts page to track net worth. Your Dashboard shows everything at a glance!',
@@ -63,10 +67,10 @@ const quickActions = [
   { label: 'Track debt', keyword: 'debt' },
 ]
 
-function findFAQ(input: string): string | null {
+function findFAQ(input: string, userName?: string): string | null {
   const lower = input.toLowerCase()
   for (const [key, response] of Object.entries(knowledgeBase)) {
-    if (lower.includes(key)) return response
+    if (lower.includes(key)) return response.replace('{name}', userName || 'there')
   }
   return null
 }
@@ -102,6 +106,16 @@ function AgentResultCard({ result }: { result: AgentResult }) {
       </div>
     )
   }
+  if (result.intent === 'add_to_fund' && d.fund) {
+    return (
+      <div className="mt-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2.5">
+        <p className="text-emerald-400 text-xs font-medium">Fund Updated</p>
+        <p className="text-white text-xs mt-0.5">{formatAmount(d.fund.amount, currency)}</p>
+        <p className="text-white/50 text-xs">{d.fund.name}</p>
+      </div>
+    )
+  }
+
   if (result.intent === 'add_spending_rule' && d.rule) {
     return (
       <div className="mt-2 bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5">
@@ -122,10 +136,48 @@ function AgentResultCard({ result }: { result: AgentResult }) {
   return null
 }
 
+function FundConfirmCard({ result, onDone }: { result: AgentResult; onDone: () => void }) {
+  const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState(false)
+  const action = result.action
+  if (!action || action.type !== 'confirm_create_fund' || done) return null
+
+  const handleYes = async () => {
+    setLoading(true)
+    try {
+      await api.post('/funds', action.payload)
+      window.dispatchEvent(new CustomEvent('lucid-data-changed'))
+      setDone(true)
+      onDone()
+    } catch {}
+    setLoading(false)
+  }
+
+  return (
+    <div className="mt-2 flex gap-2">
+      <button
+        onClick={handleYes}
+        disabled={loading}
+        className="px-3 py-1 rounded-lg text-xs font-medium bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/30 transition-all active:scale-95 disabled:opacity-50"
+      >
+        {loading ? 'Creating...' : 'Yes, create fund'}
+      </button>
+      <button
+        onClick={() => { setDone(true); onDone() }}
+        disabled={loading}
+        className="px-3 py-1 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-ash hover:text-ivory hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+      >
+        No
+      </button>
+    </div>
+  )
+}
+
 export default function HelpBot() {
+  const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'bot', text: "Hey! I'm Lucid Assistant. How can I help you?" },
+    { role: 'bot', text: user?.name ? `Hey ${user.name}! I'm Lucid Assistant. How can I help you?` : "Hey! I'm Lucid Assistant. How can I help you?" },
   ])
   const [input, setInput] = useState('')
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -140,7 +192,7 @@ export default function HelpBot() {
     setMessages((prev) => [...prev, { role: 'user', text: q }])
     setInput('')
 
-    const faq = findFAQ(q)
+    const faq = findFAQ(q, user?.name)
     if (faq) {
       setTimeout(() => {
         setMessages((prev) => [...prev, { role: 'bot', text: faq }])
@@ -218,6 +270,9 @@ export default function HelpBot() {
                   >
                     {msg.text.split('\n').map((line, j) => line ? <p key={j}>{line}</p> : <br key={j} />)}
                     {msg.result && <AgentResultCard result={msg.result} />}
+                    {msg.result?.action?.type === 'confirm_create_fund' && (
+                      <FundConfirmCard result={msg.result} onDone={() => {}} />
+                    )}
                   </div>
                 </div>
               ))}

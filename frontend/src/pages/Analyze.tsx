@@ -4,6 +4,7 @@ import api from '../services/api'
 import type { AnalysisResult } from '../types'
 import GlassCard from '../components/GlassCard'
 import PillButton from '../components/PillButton'
+import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 
@@ -14,6 +15,7 @@ export default function Analyze() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [loading, setLoading] = useState(false)
   const { currency } = useCurrency()
+  const { toast } = useToast()
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,6 +29,7 @@ export default function Analyze() {
       setResult(res.data)
     } catch {
       setResult(null)
+      toast('Analysis failed. Try again.', 'error')
     }
     setLoading(false)
   }

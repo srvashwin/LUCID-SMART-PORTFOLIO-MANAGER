@@ -11,7 +11,8 @@ from app.models.income import Income
 from app.models.investment_goal import InvestmentGoal
 from app.models.user_goal import UserGoal
 from app.models.spending_rule import SpendingRule
-from app.schemas import AnalysisRequest, SuggestionRequest, InvestmentAssistantRequest, AgentRequest, AgentResponse, AgentData
+from app.models.fund import Fund
+from app.schemas import AnalysisRequest, SuggestionRequest, InvestmentAssistantRequest, AgentRequest, AgentResponse, AgentData, AgentAction
 from app.utils import get_current_user
 from app.services import ai_service
 
@@ -164,28 +165,102 @@ def investment_assistant(data: InvestmentAssistantRequest, db: Session = Depends
     return result
 
 
+GREETINGS = {"hey", "hi", "hello", "heyy", "heyyy", "sup", "yo", "howdy", "whats up", "what's up", "good morning", "good afternoon", "good evening"}
+
 @router.post("/agent")
 def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    lower_msg = data.message.lower().strip()
+    msg_words = lower_msg.split()
+    if len(msg_words) <= 3 and any(g in lower_msg for g in GREETINGS):
+        return AgentResponse(
+            intent="general",
+            message=f"Hey {user.name}! I'm Lucid Assistant. How can I help you today?",
+            data=AgentData(),
+        )
+
     parsed = ai_service.process_agent_message(data.message, user.currency)
     intent = parsed.get("intent", "general")
     params = parsed.get("data", {})
 
+    lower_msg = data.message.lower()
+    has_fund_keyword = "saving" in lower_msg or "savings" in lower_msg or "fund" in lower_msg
+    has_add_keyword = any(w in lower_msg for w in ["add", "put", "contribute", "adding"])
+    if intent in ("add_savings_goal", "add_investment_goal") and has_fund_keyword and has_add_keyword:
+        intent = "add_to_fund"
+        parsed["intent"] = "add_to_fund"
+        if "amount" not in params:
+            params["amount"] = 0
+        if "name" not in params:
+            fund_name = "Savings Fund"
+            if "emergency" in lower_msg:
+                fund_name = "Emergency Fund"
+            elif "vacation" in lower_msg:
+                fund_name = "Vacation Fund"
+            elif "house" in lower_msg or "down payment" in lower_msg:
+                fund_name = "House Fund"
+            elif "car" in lower_msg:
+                fund_name = "Car Fund"
+            params["name"] = fund_name
+
     agent_data = AgentData()
 
     if intent == "add_income":
-        income = Income(
-            user_id=user.id,
-            amount=params.get("amount", 0),
-            frequency=params.get("frequency", "monthly"),
-            source=params.get("source", ""),
-            date=date.today(),
+        is_increment = params.get("increment", False) or any(
+            w in data.message.lower() for w in ["increase", "raised", "raise", "bonus", "went up", "got a raise", "increment", "extra", "added"]
         )
-        db.add(income)
-        db.commit()
-        db.refresh(income)
-        agent_data = AgentData(
-            income={"amount": income.amount, "frequency": income.frequency, "source": income.source},
-        )
+        existing = db.query(Income).filter(
+            Income.user_id == user.id
+        ).order_by(Income.date.desc()).first()
+        if is_increment:
+            add_amount = params.get("amount", 0)
+            if existing:
+                old_amount = existing.amount
+                existing.amount = old_amount + add_amount
+                existing.date = date.today()
+                db.commit()
+                db.refresh(existing)
+                parsed["message"] = f"I've added to your income. It's now {ai_service._get_symbol(user.currency)}{existing.amount:.2f}/{existing.frequency} (was {ai_service._get_symbol(user.currency)}{old_amount:.2f})."
+                agent_data = AgentData(
+                    income={"amount": existing.amount, "frequency": existing.frequency, "source": existing.source},
+                )
+            else:
+                income = Income(
+                    user_id=user.id, amount=add_amount,
+                    frequency=params.get("frequency", "monthly"),
+                    source=params.get("source", ""), date=date.today(),
+                )
+                db.add(income)
+                db.commit()
+                db.refresh(income)
+                agent_data = AgentData(
+                    income={"amount": income.amount, "frequency": income.frequency, "source": income.source},
+                )
+        else:
+            if existing:
+                existing.amount = params.get("amount", 0)
+                existing.frequency = params.get("frequency", existing.frequency)
+                existing.source = params.get("source", existing.source)
+                existing.date = date.today()
+                db.commit()
+                db.refresh(existing)
+                parsed["message"] = f"I've updated your income to {ai_service._get_symbol(user.currency)}{existing.amount:.2f}/{existing.frequency}."
+                agent_data = AgentData(
+                    income={"amount": existing.amount, "frequency": existing.frequency, "source": existing.source},
+                )
+            else:
+                income = Income(
+                    user_id=user.id,
+                    amount=params.get("amount", 0),
+                    frequency=params.get("frequency", "monthly"),
+                    source=params.get("source", ""),
+                    date=date.today(),
+                )
+                db.add(income)
+                db.commit()
+                db.refresh(income)
+                agent_data = AgentData(
+                    income={"amount": income.amount, "frequency": income.frequency, "source": income.source},
+                )
 
     elif intent == "add_expense":
         expense = Expense(
@@ -280,6 +355,38 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
         agent_data = AgentData(
             goal={"type": goal.type, "target_amount": goal.target_amount, "monthly_contribution": goal.monthly_contribution},
         )
+
+    elif intent == "add_to_fund":
+        add_amount = params.get("amount", 0)
+        fund_name = params.get("name", "Savings Fund")
+        fund_type = "savings"
+        if "invest" in fund_name.lower():
+            fund_type = "investment"
+        existing = db.query(Fund).filter(
+            Fund.user_id == user.id,
+            Fund.name == fund_name,
+            Fund.type == fund_type,
+        ).first()
+        if existing:
+            old_amount = existing.current_amount
+            existing.current_amount = (existing.current_amount or 0) + add_amount
+            existing.monthly_contribution = max(existing.monthly_contribution or 0, add_amount)
+            db.commit()
+            db.refresh(existing)
+            parsed["message"] = f"Added {ai_service._get_symbol(user.currency)}{add_amount:.2f} to your {fund_name} (now {ai_service._get_symbol(user.currency)}{existing.current_amount:.2f})."
+            agent_data = AgentData(
+                fund={"name": existing.name, "amount": existing.current_amount, "type": existing.type},
+            )
+        else:
+            return AgentResponse(
+                intent="add_to_fund",
+                message=f"I don't see a '{fund_name}' yet. Would you like me to create one with {ai_service._get_symbol(user.currency)}{add_amount:.2f}?",
+                data=AgentData(),
+                action=AgentAction(
+                    type="confirm_create_fund",
+                    payload={"name": fund_name, "type": fund_type, "current_amount": add_amount},
+                ),
+            )
 
     elif intent == "add_spending_rule":
         rule = SpendingRule(
