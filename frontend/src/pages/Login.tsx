@@ -57,6 +57,11 @@ export default function Login() {
             className="w-full px-4 py-2.5 bg-[#14141e] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] focus:ring-4 focus:ring-[rgba(82,102,235,0.12)] transition-all placeholder-[#5c5c68]"
           />
         </div>
+        <div className="flex items-center justify-end mt-1">
+          <Link to="/forgot-password" className="text-xs text-ash hover:text-[#9cb4e8] transition-colors">
+            Forgot password?
+          </Link>
+        </div>
         <PillButton type="submit" className="w-full mt-2" disabled={loading}>
           {loading ? 'Signing in…' : 'Sign In'}
         </PillButton>

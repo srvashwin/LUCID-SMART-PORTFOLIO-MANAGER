@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import type { ExpenseStats, Income, InvestmentGoal, UserGoal, NetWorthResponse, Budget, AccountData } from '../types'
+import type { ExpenseStats, Income, InvestmentGoal, UserGoal, NetWorthResponse, NetWorthHistoryResponse, Budget, AccountData } from '../types'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import MetricCard from '../components/MetricCard'
 import GlassCard from '../components/GlassCard'
@@ -15,6 +15,7 @@ import { getCategoryColor } from '../utils/colors'
 
 const ALL_WIDGETS = [
   { id: 'metrics', label: 'Metric Cards' },
+  { id: 'networth', label: 'Net Worth History' },
   { id: 'trend', label: 'Spending Trend' },
   { id: 'pie', label: 'Category Pie Chart' },
   { id: 'breakdown', label: 'Category Breakdown' },
@@ -48,6 +49,7 @@ export default function Dashboard() {
   const [invGoals, setInvGoals] = useState<InvestmentGoal[]>([])
   const [userGoals, setUserGoals] = useState<UserGoal[]>([])
   const [netWorth, setNetWorth] = useState<NetWorthResponse | null>(null)
+  const [netWorthHistory, setNetWorthHistory] = useState<NetWorthHistoryResponse | null>(null)
   const [budget, setBudget] = useState<Budget | null>(null)
   const [accounts, setAccounts] = useState<AccountData[]>([])
   const [suggestions, setSuggestions] = useState<{ category: string; suggested_max: number; current_spend: number; reason: string }[]>([])
@@ -82,6 +84,7 @@ export default function Dashboard() {
       api.get('/goals/investment').then(r => setInvGoals(r.data)),
       api.get('/goals/user-goals').then(r => setUserGoals(r.data)),
       api.get('/accounts/net-worth').then(r => setNetWorth(r.data)),
+      api.get('/accounts/net-worth/history').then(r => setNetWorthHistory(r.data)),
       api.get('/budgets/current').then(r => setBudget(r.data)),
       api.get('/accounts').then(r => setAccounts(r.data)),
       api.post('/ai/rules-suggestions').then(r => setSuggestions(r.data.suggestions || [])),
@@ -291,6 +294,67 @@ export default function Dashboard() {
               />
               <MetricCard label="Transactions" value={String(stats?.category_breakdown.reduce((s, c) => s + c.count, 0) || 0)} delay={400} />
             </div>
+          )}
+
+          {/* Net Worth History */}
+          {w('networth') && netWorthHistory && netWorthHistory.snapshots.length > 0 && (
+            <GlassCard className="p-5" delay={0.08}>
+              <h2 className="text-sm font-medium text-ivory mb-4" style={{ fontWeight: 500 }}>Net Worth Over Time</h2>
+              {netWorthHistory.snapshots.length < 2 ? (
+                <p className="text-sm text-ash text-center py-6">
+                  Snapshot recorded for today. Check back after a few days to see your net worth trend.
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex gap-3 text-xs text-ash">
+                      {netWorthHistory.change_1m !== null && (
+                        <span className={netWorthHistory.change_1m >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                          1m: {netWorthHistory.change_1m >= 0 ? '+' : ''}{formatAmount(netWorthHistory.change_1m, currency)}
+                        </span>
+                      )}
+                      {netWorthHistory.change_3m !== null && (
+                        <span className={netWorthHistory.change_3m >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                          3m: {netWorthHistory.change_3m >= 0 ? '+' : ''}{formatAmount(netWorthHistory.change_3m, currency)}
+                        </span>
+                      )}
+                      {netWorthHistory.change_6m !== null && (
+                        <span className={netWorthHistory.change_6m >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                          6m: {netWorthHistory.change_6m >= 0 ? '+' : ''}{formatAmount(netWorthHistory.change_6m, currency)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={netWorthHistory.snapshots.map(s => ({
+                      date: s.snapshot_date,
+                      netWorth: s.net_worth,
+                      assets: s.total_assets,
+                      liabilities: s.total_liabilities,
+                    }))}>
+                      <defs>
+                        <linearGradient id="nwGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity={0.35} />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                        </linearGradient>
+                        <linearGradient id="nwAssetGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#5266eb" stopOpacity={0.2} />
+                          <stop offset="100%" stopColor="#5266eb" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="date" tick={{ fill: '#d4d4dd', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: '#d4d4dd', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ background: '#1e1e2a', border: '1px solid rgba(237,237,243,0.08)', borderRadius: 8, color: '#ededf3', fontSize: 13 }}
+                      />
+                      <Area type="monotone" dataKey="assets" stroke="#5266eb" strokeWidth={1.5} fill="url(#nwAssetGradient)" dot={false} />
+                      <Area type="monotone" dataKey="liabilities" stroke="#ef4444" strokeWidth={1.5} fill="none" dot={false} strokeDasharray="4 3" />
+                      <Area type="monotone" dataKey="netWorth" stroke="#10b981" strokeWidth={2} fill="url(#nwGradient)" dot={{ r: 2, fill: '#10b981' }} activeDot={{ r: 4 }} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </>
+              )}
+            </GlassCard>
           )}
 
           {/* Charts */}

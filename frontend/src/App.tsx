@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './hooks/useAuth'
 import ErrorBoundary from './components/ErrorBoundary'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import Chat from './pages/Chat'
 import Expenses from './pages/Expenses'
@@ -16,6 +18,8 @@ import Reports from './pages/Reports'
 import Account from './pages/Account'
 import Help from './pages/Help'
 import ImportStatement from './pages/ImportStatement'
+import Portfolio from './pages/Portfolio'
+import Recurring from './pages/Recurring'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -37,6 +41,8 @@ function App() {
           <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Navigate to="/dashboard" />} />
             <Route path="dashboard" element={<Dashboard />} />
@@ -52,6 +58,8 @@ function App() {
             <Route path="account" element={<Account />} />
             <Route path="help" element={<Help />} />
             <Route path="import" element={<ImportStatement />} />
+            <Route path="portfolio" element={<Portfolio />} />
+            <Route path="recurring" element={<Recurring />} />
           </Route>
           </Routes>
         </AuthProvider>

@@ -5,6 +5,7 @@ import type { SubscriptionDetectResponse } from '../types'
 import GlassCard from '../components/GlassCard'
 import MetricCard from '../components/MetricCard'
 import PillBadge from '../components/PillBadge'
+import PillButton from '../components/PillButton'
 import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
@@ -86,12 +87,33 @@ export default function Subscriptions() {
                         <span className="text-xs text-ash">{sub.occurrences} payments</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => setDismissed(prev => new Set(prev).add(sub.merchant))}
-                      className="text-xs text-ash hover:text-red-400 transition-colors shrink-0"
-                    >
-                      Dismiss
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <PillButton
+                        variant="ghost"
+                        onClick={async () => {
+                          try {
+                            await api.post('/subscriptions/promote', {
+                              merchant: sub.merchant,
+                              amount: sub.amount,
+                              category: sub.category,
+                            })
+                            toast('Added to Recurring', 'success')
+                            window.dispatchEvent(new CustomEvent('lucid-data-changed'))
+                          } catch {
+                            toast('Already in Recurring', 'error')
+                          }
+                        }}
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>
+                        Promote
+                      </PillButton>
+                      <button
+                        onClick={() => setDismissed(prev => new Set(prev).add(sub.merchant))}
+                        className="text-xs text-ash hover:text-red-400 transition-colors shrink-0"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
                   </div>
                 </GlassCard>
               </motion.div>

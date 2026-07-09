@@ -379,3 +379,147 @@ class ImportBatchOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class HoldingCreate(BaseModel):
+    ticker: str
+    shares: float
+    cost_basis: float = 0.0
+    account_id: Optional[int] = None
+    notes: str = ""
+
+
+class HoldingUpdate(BaseModel):
+    shares: Optional[float] = None
+    cost_basis: Optional[float] = None
+    account_id: Optional[int] = None
+    notes: Optional[str] = None
+
+
+class HoldingOut(BaseModel):
+    id: int
+    user_id: int
+    ticker: str
+    shares: float
+    cost_basis: float
+    account_id: Optional[int]
+    notes: str
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PortfolioHolding(BaseModel):
+    id: int
+    ticker: str
+    shares: float
+    cost_basis: float
+    current_price: float
+    change_pct: float
+    current_value: float
+    gain_loss: float
+    gain_loss_pct: float
+    notes: str
+
+
+class PortfolioResponse(BaseModel):
+    holdings: list[PortfolioHolding]
+    total_value: float
+    total_cost: float
+    total_gain_loss: float
+    total_gain_loss_pct: float
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    password: str
+
+
+class RecurringCreate(BaseModel):
+    type: str = "expense"
+    amount: float
+    category: str = "Other"
+    description: str = ""
+    merchant: str = ""
+    frequency: str = "monthly"
+    interval_days: Optional[int] = None
+    next_date: date
+    end_date: Optional[date] = None
+    is_active: bool = True
+
+
+class RecurringUpdate(BaseModel):
+    amount: Optional[float] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+    merchant: Optional[str] = None
+    frequency: Optional[str] = None
+    interval_days: Optional[int] = None
+    next_date: Optional[date] = None
+    end_date: Optional[date] = None
+    is_active: Optional[bool] = None
+
+
+class RecurringOut(BaseModel):
+    id: int
+    user_id: int
+    type: str
+    amount: float
+    category: str
+    description: str
+    merchant: str
+    frequency: str
+    interval_days: Optional[int]
+    next_date: date
+    end_date: Optional[date]
+    is_active: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class UpcomingOccurrence(BaseModel):
+    recurring_id: int
+    type: str
+    amount: float
+    category: str
+    description: str
+    merchant: str
+    due_date: date
+
+
+class UpcomingResponse(BaseModel):
+    occurrences: list[UpcomingOccurrence]
+    total: float
+
+
+class PromoteSubscriptionRequest(BaseModel):
+    merchant: str
+    amount: float
+    category: str
+
+
+class NetWorthSnapshotOut(BaseModel):
+    id: int
+    total_assets: float
+    total_liabilities: float
+    net_worth: float
+    snapshot_date: date
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class NetWorthHistoryResponse(BaseModel):
+    snapshots: list[NetWorthSnapshotOut]
+    change_1m: Optional[float] = None
+    change_3m: Optional[float] = None
+    change_6m: Optional[float] = None

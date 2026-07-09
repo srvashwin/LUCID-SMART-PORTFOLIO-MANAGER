@@ -9,6 +9,9 @@ from app.models.budget import Budget, BudgetCategory
 from app.models.account import Account
 from app.models.fund import Fund
 from app.models.import_batch import ImportBatch
+from app.models.holding import Holding, HoldingPrice
+from app.models.net_worth_snapshot import NetWorthSnapshot
+from app.models.recurring import RecurringTransaction
 
 __all__ = [
     "User",
@@ -23,4 +26,8 @@ __all__ = [
     "Account",
     "Fund",
     "ImportBatch",
+    "Holding",
+    "HoldingPrice",
+    "NetWorthSnapshot",
+    "RecurringTransaction",
 ]

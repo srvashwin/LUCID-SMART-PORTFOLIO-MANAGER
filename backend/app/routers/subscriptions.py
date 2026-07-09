@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from datetime import date
+from datetime import date, timedelta
 from collections import defaultdict
 
 from app.database import get_db
 from app.models.user import User
 from app.models.expense import Expense
-from app.schemas import DetectedSubscription, SubscriptionDetectResponse
+from app.models.recurring import RecurringTransaction
+from app.schemas import DetectedSubscription, SubscriptionDetectResponse, PromoteSubscriptionRequest, RecurringOut
 from app.utils import get_current_user
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
@@ -95,3 +96,35 @@ def detect_subscriptions(db: Session = Depends(get_db), user: User = Depends(get
         total_monthly=total_monthly,
         total_yearly=round(total_monthly * 12, 2),
     )
+
+
+@router.post("/promote", response_model=RecurringOut)
+def promote_to_recurring(data: PromoteSubscriptionRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    existing = db.query(RecurringTransaction).filter(
+        RecurringTransaction.user_id == user.id,
+        RecurringTransaction.merchant == data.merchant,
+        RecurringTransaction.is_active == True,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Recurring transaction for {data.merchant} already exists")
+
+    now = date.today()
+    next_date = now + timedelta(days=30)
+
+    recurring = RecurringTransaction(
+        user_id=user.id,
+        type="expense",
+        amount=data.amount,
+        category=data.category,
+        description=f"{data.merchant} subscription",
+        merchant=data.merchant,
+        frequency="monthly",
+        interval_days=30,
+        next_date=next_date,
+        end_date=None,
+        is_active=True,
+    )
+    db.add(recurring)
+    db.commit()
+    db.refresh(recurring)
+    return recurring

@@ -8,7 +8,7 @@ import HelpBot from './HelpBot'
 import WelcomePopup from './WelcomePopup'
 import {
   DashboardIcon, ChatIcon, ExpenseIcon, SubscriptionIcon, RuleIcon,
-  GoalIcon, AnalyzeIcon, BankIcon, ReportIcon, AccountIcon, HelpIcon, BudgetIcon,
+  GoalIcon, AnalyzeIcon, BankIcon, ReportIcon, AccountIcon, HelpIcon, BudgetIcon, PortfolioIcon, RecurringIcon,
 } from './icons'
 
 const navGroups = [
@@ -24,6 +24,7 @@ const navGroups = [
     items: [
       { to: '/expenses', label: 'Expenses', icon: ExpenseIcon },
       { to: '/subscriptions', label: 'Subscriptions', icon: SubscriptionIcon },
+      { to: '/recurring', label: 'Recurring', icon: RecurringIcon },
       { to: '/budget', label: 'Budget', icon: BudgetIcon },
       { to: '/rules', label: 'Rules', icon: RuleIcon },
     ],
@@ -31,7 +32,8 @@ const navGroups = [
   {
     label: 'Insights',
     items: [
-      { to: '/goals', label: 'Investments', icon: GoalIcon },
+      { to: '/portfolio', label: 'Portfolio', icon: PortfolioIcon },
+      { to: '/goals', label: 'Goals', icon: GoalIcon },
       { to: '/analyze', label: 'Analyze', icon: AnalyzeIcon },
       { to: '/accounts', label: 'Accounts', icon: BankIcon },
       { to: '/reports', label: 'Reports', icon: ReportIcon },

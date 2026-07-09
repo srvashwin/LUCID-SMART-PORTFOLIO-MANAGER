@@ -200,3 +200,83 @@ export interface Budget {
   created_at: string
   updated_at: string
 }
+
+export interface Holding {
+  id: number
+  user_id: number
+  ticker: string
+  shares: number
+  cost_basis: number
+  account_id: number | null
+  notes: string
+  created_at: string
+  updated_at: string
+}
+
+export interface PortfolioHolding {
+  id: number
+  ticker: string
+  shares: number
+  cost_basis: number
+  current_price: number
+  change_pct: number
+  current_value: number
+  gain_loss: number
+  gain_loss_pct: number
+  notes: string
+}
+
+export interface PortfolioResponse {
+  holdings: PortfolioHolding[]
+  total_value: number
+  total_cost: number
+  total_gain_loss: number
+  total_gain_loss_pct: number
+}
+
+export interface NetWorthSnapshot {
+  id: number
+  total_assets: number
+  total_liabilities: number
+  net_worth: number
+  snapshot_date: string
+  created_at: string
+}
+
+export interface NetWorthHistoryResponse {
+  snapshots: NetWorthSnapshot[]
+  change_1m: number | null
+  change_3m: number | null
+  change_6m: number | null
+}
+
+export interface RecurringTransaction {
+  id: number
+  user_id: number
+  type: string
+  amount: number
+  category: string
+  description: string
+  merchant: string
+  frequency: string
+  interval_days: number | null
+  next_date: string
+  end_date: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface UpcomingOccurrence {
+  recurring_id: number
+  type: string
+  amount: number
+  category: string
+  description: string
+  merchant: string
+  due_date: string
+}
+
+export interface UpcomingResponse {
+  occurrences: UpcomingOccurrence[]
+  total: number
+}
