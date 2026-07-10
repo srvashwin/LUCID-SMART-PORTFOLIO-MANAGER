@@ -1,4 +1,5 @@
 import os
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -8,6 +9,17 @@ from alembic import command
 from app.database import engine, Base, SessionLocal
 from app.routers import auth, expenses, income, rules, goals, ai, reports, budgets, subscriptions, accounts, funds, imports, holdings, recurring, households, cashflow
 from app.models.user import User
+from app.config import settings
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+if settings.SENTRY_DSN:
+    import sentry_sdk
+    sentry_sdk.init(dsn=settings.SENTRY_DSN, traces_sample_rate=0.1)
 
 if not os.getenv("TESTING"):
     alembic_cfg = AlembicConfig(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))

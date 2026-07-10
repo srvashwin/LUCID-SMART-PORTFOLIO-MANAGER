@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = ""
     SMTP_FROM_EMAIL: Optional[str] = ""
 
+    SENTRY_DSN: Optional[str] = ""
     GOOGLE_CLIENT_ID: str = ""
     FRONTEND_URL: str = "http://localhost:5173"
 
