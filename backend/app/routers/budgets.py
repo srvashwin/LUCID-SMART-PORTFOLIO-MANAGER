@@ -78,7 +78,7 @@ def list_budgets(
         query = query.filter(Budget.household_id == None)
     budgets_q = query.order_by(Budget.year.desc(), Budget.month.desc())
     result = paginate(budgets_q, params.offset, params.limit)
-    result.items = [_build_budget_out(b, db, user.id, household_id) for b in result.items]
+    result["items"] = [_build_budget_out(b, db, user.id, household_id) for b in result["items"]]
     return result
 
 

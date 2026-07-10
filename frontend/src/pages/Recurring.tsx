@@ -122,7 +122,7 @@ export default function Recurring() {
     setLoading(true)
     const hhParam = activeHouseholdId ? { household_id: activeHouseholdId } : {}
     Promise.all([
-      api.get('/recurring', { params: hhParam }).then(r => setRecurringList(r.data)),
+      api.get('/recurring', { params: hhParam }).then(r => setRecurringList(r.data.items || r.data)),
       api.get('/recurring/upcoming', { params: { days: 30, ...hhParam } }).then(r => setUpcoming(r.data)),
     ]).catch(() => {}).finally(() => setLoading(false))
   }

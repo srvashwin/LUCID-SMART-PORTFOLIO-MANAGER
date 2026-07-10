@@ -178,8 +178,8 @@ export default function Dashboard() {
     Promise.all([
       api.get('/expenses/stats', { params: hhParam }).then(r => setStats(r.data)),
       api.get('/income/latest', { params: hhParam }).then(r => setIncome(r.data)),
-      api.get('/goals/investment', { params: hhParam }).then(r => setInvGoals(r.data)),
-      api.get('/goals/user-goals', { params: hhParam }).then(r => setUserGoals(r.data)),
+      api.get('/goals/investment', { params: hhParam }).then(r => setInvGoals(r.data.items || r.data)),
+      api.get('/goals/user-goals', { params: hhParam }).then(r => setUserGoals(r.data.items || r.data)),
       api.get('/accounts/net-worth').then(r => setNetWorth(r.data)),
       api.get('/accounts/net-worth/history').then(r => setNetWorthHistory(r.data)),
       api.get('/budgets/current', { params: hhParam }).then(r => setBudget(r.data)),
