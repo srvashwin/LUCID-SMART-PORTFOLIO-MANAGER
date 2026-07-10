@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = ""
     SMTP_FROM_EMAIL: Optional[str] = ""
 
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
     SENTRY_DSN: Optional[str] = ""
     GOOGLE_CLIENT_ID: str = ""
     FRONTEND_URL: str = "http://localhost:5173"

@@ -6,6 +6,7 @@ services:
     environment:
       - DATABASE_URL=sqlite:///./data/finance_tracker.db
       - SECRET_KEY=${SECRET_KEY:-change-this-in-production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - PRICE_PROVIDER=${PRICE_PROVIDER:-yahoo}
       - TWELVE_DATA_API_KEY=${TWELVE_DATA_API_KEY:-}

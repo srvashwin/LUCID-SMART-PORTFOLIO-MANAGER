@@ -12,12 +12,15 @@ from app.schemas import UserCreate, UserLogin, UserOut, UserUpdate, Token, Forgo
 from app.utils import hash_password, verify_password, create_access_token, get_current_user
 from app.services.email import send_password_reset, send_verification_email
 from app.config import settings
+from app.limiter import limiter
+from fastapi import Request
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/signup", response_model=UserOut)
-def signup(data: UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def signup(request: Request, data: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == data.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -58,7 +61,8 @@ def signup(data: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-def login(data: UserLogin, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")
+def login(request: Request, data: UserLogin, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -195,7 +199,8 @@ def update_me(data: UserUpdate, db: Session = Depends(get_db), user: User = Depe
 
 
 @router.post("/forgot-password")
-def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("3/minute")
+def forgot_password(request: Request, data: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == data.email).first()
     if not user:
         return {"detail": "If that email is registered, a reset link has been sent."}
