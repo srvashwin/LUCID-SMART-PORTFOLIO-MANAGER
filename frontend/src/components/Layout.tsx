@@ -59,9 +59,9 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 
   return (
     <>
-      <div className="px-4 py-4 border-b border-[rgba(237,237,243,0.06)]">
+      <NavLink to="/dashboard" className="block px-4 py-4 border-b border-[rgba(237,237,243,0.06)]">
         <Logo />
-      </div>
+      </NavLink>
       <nav className="flex-1 px-3 py-5 space-y-6 overflow-y-auto">
         {displayNavGroups.map((group) => (
           <div key={group.label}>

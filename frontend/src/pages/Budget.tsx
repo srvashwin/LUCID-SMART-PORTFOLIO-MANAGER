@@ -25,6 +25,10 @@ export default function BudgetPage() {
   const [refreshKey, setRefreshKey] = useState(0)
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [year, setYear] = useState(new Date().getFullYear())
+  const [newCatName, setNewCatName] = useState('')
+  const [newCatAmount, setNewCatAmount] = useState(0)
+  const [showNewCat, setShowNewCat] = useState(false)
+  const [extraCategories, setExtraCategories] = useState<string[]>([])
   const { currency } = useCurrency()
   const symbol = getCurrencySymbol(currency)
   const { activeHouseholdId } = useHousehold()
@@ -242,9 +246,9 @@ export default function BudgetPage() {
 
           {/* Category assignments */}
           <div className="space-y-2">
-            {budget.categories.map((cat, i) => {
+            {[...budget.categories, ...extraCategories.map(n => ({ category: n, spent_amount: 0, assigned_amount: assignments[n] || 0 } satisfies { category: string; spent_amount: number; assigned_amount: number }))].map((cat, i) => {
               const assigned = assignments[cat.category] || 0
-              const spent = cat.spent_amount
+              const spent = 'spent_amount' in cat ? (cat as any).spent_amount || 0 : 0
               const remaining = assigned - spent
               const pct = assigned > 0 ? Math.min(100, (spent / assigned) * 100) : 0
 
@@ -256,57 +260,100 @@ export default function BudgetPage() {
                   transition={{ delay: i * 0.03 }}
                 >
                   <GlassCard className="p-4">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
-                      <div className="flex items-center gap-2 sm:gap-0 sm:block w-full sm:w-auto">
-                        <div
-                          className="w-2.5 h-2.5 rounded-full shrink-0 sm:mb-2"
-                          style={{ backgroundColor: CATEGORY_COLORS[cat.category] || '#6b7280' }}
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: CATEGORY_COLORS[cat.category] || '#6b7280' }}
+                      />
+                      <span className="text-sm text-ivory font-medium min-w-[120px]">{cat.category}</span>
+                      <div className="relative shrink-0">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-ash">{symbol}</span>
+                        <input
+                          type="number"
+                          value={assigned || ''}
+                          onChange={(e) => setAssignments(prev => ({
+                            ...prev,
+                            [cat.category]: Number(e.target.value) || 0,
+                          }))}
+                          placeholder="0"
+                          className="w-24 pl-7 pr-2.5 py-1.5 bg-[#272735] text-ivory rounded-lg text-xs border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]"
                         />
-                        <span className="text-sm text-ivory font-medium ml-2 sm:ml-0">{cat.category}</span>
                       </div>
-                      <div className="flex-1 min-w-0 w-full">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-3">
-                            <div className="relative">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-ash">{symbol}</span>
-                              <input
-                                type="number"
-                                value={assigned || ''}
-                                onChange={(e) => setAssignments(prev => ({
-                                  ...prev,
-                                  [cat.category]: Number(e.target.value) || 0,
-                                }))}
-                                placeholder="0"
-                                className="w-24 pl-7 pr-2.5 py-1.5 bg-[#272735] text-ivory rounded-lg text-xs border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]"
-                              />
-                            </div>
-                            <span className="text-xs text-ash tabular-nums whitespace-nowrap">
-                              Spent: {formatAmount(spent, currency)}
-                            </span>
-                            <span
-                              className={`text-xs font-medium tabular-nums whitespace-nowrap ${
-                                remaining >= 0 ? 'text-emerald-400' : 'text-red-400'
-                              }`}
-                            >
-                              {remaining >= 0 ? 'Left: ' : 'Over: '}
-                              {formatAmount(Math.abs(remaining), currency)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-full h-1.5 bg-[rgba(237,237,243,0.06)] rounded-full overflow-hidden mt-2">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              spent > assigned ? 'bg-red-400' : 'bg-[#5266eb]'
-                            }`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
+                      <span className="text-xs text-ash tabular-nums whitespace-nowrap">
+                        Spent: {formatAmount(spent, currency)}
+                      </span>
+                      <span
+                        className={`text-xs font-medium tabular-nums whitespace-nowrap ${
+                          remaining >= 0 ? 'text-emerald-400' : 'text-red-400'
+                        }`}
+                      >
+                        {remaining >= 0 ? 'Left: ' : 'Over: '}
+                        {formatAmount(Math.abs(remaining), currency)}
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 bg-[rgba(237,237,243,0.06)] rounded-full overflow-hidden mt-2">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          spent > assigned ? 'bg-red-400' : 'bg-[#5266eb]'
+                        }`}
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                   </GlassCard>
                 </motion.div>
               )
             })}
+
+            {/* Add category */}
+            {showNewCat ? (
+              <GlassCard className="p-4" hover={false}>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <input
+                    type="text"
+                    value={newCatName}
+                    onChange={(e) => setNewCatName(e.target.value)}
+                    placeholder="Category name"
+                    className="flex-1 min-w-[140px] px-3 py-1.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]"
+                  />
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-ash">{symbol}</span>
+                    <input
+                      type="number"
+                      value={newCatAmount || ''}
+                      onChange={(e) => setNewCatAmount(Number(e.target.value) || 0)}
+                      placeholder="0"
+                      className="w-24 pl-7 pr-2.5 py-1.5 bg-[#272735] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors placeholder-[#70707d]"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!newCatName.trim()) { toast('Enter a category name', 'error'); return }
+                      setAssignments(prev => ({ ...prev, [newCatName.trim()]: newCatAmount }))
+                      setExtraCategories(prev => [...prev, newCatName.trim()])
+                      setNewCatName('')
+                      setNewCatAmount(0)
+                      setShowNewCat(false)
+                    }}
+                    className="px-3 py-1.5 bg-[#5266eb] text-ivory text-xs font-medium rounded-lg hover:bg-[#5c70f5] transition-colors"
+                  >
+                    Add
+                  </button>
+                  <button
+                    onClick={() => { setShowNewCat(false); setNewCatName(''); setNewCatAmount(0) }}
+                    className="px-3 py-1.5 text-ash text-xs hover:text-ivory transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </GlassCard>
+            ) : (
+              <button
+                onClick={() => setShowNewCat(true)}
+                className="w-full py-3 rounded-lg border border-dashed border-[rgba(237,237,243,0.1)] text-sm text-ash hover:text-ivory hover:border-[rgba(237,237,243,0.2)] transition-colors"
+              >
+                + Add Category
+              </button>
+            )}
           </div>
 
           {/* Save */}

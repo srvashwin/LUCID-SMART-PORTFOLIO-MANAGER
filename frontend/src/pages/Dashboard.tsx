@@ -265,10 +265,8 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between animate-fade-in">
         <div>
-          <p className="text-sm text-ash" style={{ fontWeight: 450 }}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}
-          </p>
-          <h1 className="text-2xl font-semibold text-ivory" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
-            {user?.name?.split(' ')[0] || 'there'}
+          <h1 className="text-3xl font-bold italic text-ivory" style={{ letterSpacing: '-0.02em' }}>
+            Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {user?.name?.split(' ')[0] || 'there'}!!
           </h1>
         </div>
         <button
