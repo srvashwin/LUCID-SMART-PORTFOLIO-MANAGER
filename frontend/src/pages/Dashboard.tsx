@@ -425,7 +425,7 @@ export default function Dashboard() {
                     <Tooltip
                       contentStyle={{ background: '#1e1e2a', border: '1px solid rgba(237,237,243,0.08)', borderRadius: 8, fontSize: 12 }}
                       labelStyle={{ color: '#d4d4dd' }}
-                      formatter={(value: number) => [formatAmount(value, currency)]}
+                      formatter={(value: any) => [formatAmount(Number(value ?? 0), currency)]}
                     />
                     <Area type="monotone" dataKey="balance" stroke="#5266eb" strokeWidth={2} fill="url(#cfGrad)" />
                   </AreaChart>

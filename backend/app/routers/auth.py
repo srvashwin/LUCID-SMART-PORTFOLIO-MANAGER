@@ -123,6 +123,8 @@ def google_login(data: GoogleLoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=f"Invalid Google token: {e}")
 
     google_id = info.get("sub")
+    if not google_id:
+        raise HTTPException(status_code=400, detail="Invalid Google token: missing sub")
     email = info.get("email", "")
     name = info.get("name", "")
     avatar_url = info.get("picture", "")

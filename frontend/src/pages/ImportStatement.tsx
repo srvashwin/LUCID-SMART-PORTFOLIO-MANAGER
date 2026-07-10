@@ -22,8 +22,8 @@ export default function ImportStatement() {
   const navigate = useNavigate()
   const fileRef = useRef<HTMLInputElement>(null)
   const [step, setStep] = useState(1)
-  const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
+  const [, setFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<ImportPreviewResponse | null>(null)
   const [rows, setRows] = useState<ImportPreviewRow[]>([])
 

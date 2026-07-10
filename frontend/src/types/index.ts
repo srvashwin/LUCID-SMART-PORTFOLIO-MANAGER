@@ -240,6 +240,8 @@ export interface PortfolioHolding {
   gain_loss: number
   gain_loss_pct: number
   notes: string
+  price_unavailable: boolean
+  price_as_of?: string
 }
 
 export interface PortfolioResponse {

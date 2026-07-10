@@ -5,6 +5,7 @@ from typing import Optional
 from app.database import get_db
 from app.models.user import User
 from app.utils import get_current_user
+from app.deps import verify_household_access
 from app.services.cashflow import compute_forecast
 
 router = APIRouter(prefix="/api/cashflow", tags=["cashflow"])
@@ -17,6 +18,7 @@ def forecast(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    verify_household_access(household_id, user, db)
     return compute_forecast(
         db=db,
         user_id=user.id,

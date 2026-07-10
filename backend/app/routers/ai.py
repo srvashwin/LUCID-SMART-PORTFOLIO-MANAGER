@@ -14,6 +14,7 @@ from app.models.spending_rule import SpendingRule
 from app.models.fund import Fund
 from app.schemas import AnalysisRequest, SuggestionRequest, InvestmentAssistantRequest, AgentRequest, AgentResponse, AgentData, AgentAction
 from app.utils import get_current_user
+from app.deps import verify_household_access
 from app.services import ai_service
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
@@ -170,6 +171,7 @@ GREETINGS = {"hey", "hi", "hello", "heyy", "heyyy", "sup", "yo", "howdy", "whats
 @router.post("/agent")
 def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     hhid = data.household_id
+    verify_household_access(hhid, user, db)
     lower_msg = data.message.lower().strip()
     msg_words = lower_msg.split()
     if len(msg_words) <= 3 and any(g in lower_msg for g in GREETINGS):

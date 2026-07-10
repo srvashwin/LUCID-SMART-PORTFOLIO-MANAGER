@@ -28,4 +28,4 @@ class HoldingPrice(Base):
     ticker = Column(String, nullable=False, index=True)
     price = Column(Float, nullable=False)
     change_pct = Column(Float, default=0.0)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

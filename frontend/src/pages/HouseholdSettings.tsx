@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import type { Household, HouseholdDetail } from '../types'
+import type { HouseholdDetail } from '../types'
 import GlassCard from '../components/GlassCard'
 import PillButton from '../components/PillButton'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -20,7 +19,6 @@ export default function HouseholdSettings() {
   const [confirmTransfer, setConfirmTransfer] = useState<number | null>(null)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [confirmRemove, setConfirmRemove] = useState<{ memberId: number; name: string } | null>(null)
-  const navigate = useNavigate()
   const { toast } = useToast()
 
   const fetchDetails = () => {

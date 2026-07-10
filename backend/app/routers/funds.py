@@ -7,6 +7,7 @@ from app.models.user import User
 from app.models.fund import Fund
 from app.schemas import FundCreate, FundOut
 from app.utils import get_current_user
+from app.deps import verify_household_access
 
 router = APIRouter(prefix="/api/funds", tags=["funds"])
 
@@ -18,6 +19,7 @@ def list_funds(
     user: User = Depends(get_current_user),
 ):
     query = db.query(Fund).filter(Fund.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(Fund.household_id == household_id)
     else:
@@ -27,6 +29,7 @@ def list_funds(
 
 @router.post("", response_model=FundOut)
 def create_fund(data: FundCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    verify_household_access(data.household_id, user, db)
     fund = Fund(
         user_id=user.id,
         name=data.name,

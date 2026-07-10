@@ -7,12 +7,14 @@ from app.models.user import User
 from app.models.spending_rule import SpendingRule
 from app.schemas import SpendingRuleCreate, SpendingRuleOut
 from app.utils import get_current_user
+from app.deps import verify_household_access
 
 router = APIRouter(prefix="/api/rules", tags=["rules"])
 
 
 @router.post("", response_model=SpendingRuleOut)
 def create_rule(data: SpendingRuleCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    verify_household_access(data.household_id, user, db)
     rule = SpendingRule(user_id=user.id, **data.model_dump())
     db.add(rule)
     db.commit()
@@ -27,6 +29,7 @@ def list_rules(
     user: User = Depends(get_current_user),
 ):
     query = db.query(SpendingRule).filter(SpendingRule.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(SpendingRule.household_id == household_id)
     else:

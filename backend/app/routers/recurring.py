@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.recurring import RecurringTransaction
 from app.schemas import RecurringCreate, RecurringUpdate, RecurringOut, UpcomingOccurrence, UpcomingResponse
 from app.utils import get_current_user
+from app.deps import verify_household_access
 
 router = APIRouter(prefix="/api/recurring", tags=["recurring"])
 
@@ -27,6 +28,7 @@ def list_recurring(
     user: User = Depends(get_current_user),
 ):
     query = db.query(RecurringTransaction).filter(RecurringTransaction.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(RecurringTransaction.household_id == household_id)
     else:
@@ -36,6 +38,7 @@ def list_recurring(
 
 @router.post("", response_model=RecurringOut)
 def create_recurring(data: RecurringCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    verify_household_access(data.household_id, user, db)
     recurring = RecurringTransaction(
         user_id=user.id,
         type=data.type,
@@ -99,6 +102,7 @@ def get_upcoming(
         query = query.filter(RecurringTransaction.household_id == household_id)
     else:
         query = query.filter(RecurringTransaction.household_id == None)
+    verify_household_access(household_id, user, db)
     recurring_list = query.all()
 
     today = date.today()

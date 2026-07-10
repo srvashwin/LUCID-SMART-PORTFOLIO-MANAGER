@@ -202,7 +202,7 @@ export default function Recurring() {
             <span className="text-sm text-ivory font-medium">{formatAmount(upcoming.total, currency)}</span>
           </div>
           <div className="space-y-2">
-            {upcoming.occurrences.slice(0, 10).map((o, i) => (
+            {upcoming.occurrences.slice(0, 10).map((o) => (
               <div key={`${o.recurring_id}-${o.due_date}`} className="flex items-center justify-between text-sm py-1.5">
                 <div className="flex items-center gap-3">
                   <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${o.type === 'income' ? 'bg-emerald-400' : 'bg-[#5266eb]'}`} />

@@ -12,6 +12,7 @@ from app.models.expense import Expense
 from app.models.category import Category
 from app.schemas import BudgetCreate, BudgetUpdate, BudgetCategoryAssign, BudgetOut, BudgetCategoryOut
 from app.utils import get_current_user
+from app.deps import verify_household_access
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
 
@@ -68,6 +69,7 @@ def list_budgets(
     user: User = Depends(get_current_user),
 ):
     query = db.query(Budget).filter(Budget.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(Budget.household_id == household_id)
     else:
@@ -78,6 +80,7 @@ def list_budgets(
 
 @router.post("", response_model=BudgetOut)
 def create_budget(data: BudgetCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    verify_household_access(data.household_id, user, db)
     existing_query = db.query(Budget).filter(
         Budget.user_id == user.id,
         Budget.month == data.month,
@@ -131,6 +134,7 @@ def get_current_budget(
     user: User = Depends(get_current_user),
 ):
     today = date.today()
+    verify_household_access(household_id, user, db)
     query = db.query(Budget).filter(
         Budget.user_id == user.id,
         Budget.month == today.month,
@@ -181,6 +185,7 @@ def get_budget(budget_id: int, db: Session = Depends(get_db), user: User = Depen
     budget = db.query(Budget).filter(Budget.id == budget_id).first()
     if not budget or (budget.user_id != user.id and budget.household_id is not None):
         raise HTTPException(status_code=404, detail="Budget not found")
+    verify_household_access(budget.household_id, user, db)
     return _build_budget_out(budget, db, user.id, budget.household_id)
 
 
@@ -189,6 +194,7 @@ def update_budget(budget_id: int, data: BudgetUpdate, db: Session = Depends(get_
     budget = db.query(Budget).filter(Budget.id == budget_id).first()
     if not budget or budget.user_id != user.id:
         raise HTTPException(status_code=404, detail="Budget not found")
+    verify_household_access(budget.household_id, user, db)
     if data.total_income is not None:
         budget.total_income = data.total_income
     if data.is_active is not None:
@@ -203,6 +209,7 @@ def delete_budget(budget_id: int, db: Session = Depends(get_db), user: User = De
     budget = db.query(Budget).filter(Budget.id == budget_id).first()
     if not budget or budget.user_id != user.id:
         raise HTTPException(status_code=404, detail="Budget not found")
+    verify_household_access(budget.household_id, user, db)
     db.query(BudgetCategory).filter(BudgetCategory.budget_id == budget.id).delete()
     db.delete(budget)
     db.commit()
@@ -219,6 +226,7 @@ def assign_categories(
     budget = db.query(Budget).filter(Budget.id == budget_id).first()
     if not budget or budget.user_id != user.id:
         raise HTTPException(status_code=404, detail="Budget not found")
+    verify_household_access(budget.household_id, user, db)
 
     existing = {bc.category: bc for bc in db.query(BudgetCategory).filter(BudgetCategory.budget_id == budget.id).all()}
     for item in data:

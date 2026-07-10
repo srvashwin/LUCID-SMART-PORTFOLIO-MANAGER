@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 import api from '../services/api'
-import type { PortfolioResponse, PortfolioHolding, Holding, AccountData } from '../types'
+import type { PortfolioResponse, PortfolioHolding, Holding } from '../types'
 import GlassCard from '../components/GlassCard'
 import PillButton from '../components/PillButton'
 import MetricCard from '../components/MetricCard'
@@ -50,7 +50,7 @@ function AllocationDonut({ holdings, totalValue }: { holdings: PortfolioHolding[
             <Tooltip
               contentStyle={{ background: '#1e1e2a', border: '1px solid rgba(237,237,243,0.08)', borderRadius: 8, fontSize: 13 }}
               itemStyle={{ color: '#ededf3' }}
-              formatter={(value: number) => [formatAmount(value), 'Value']}
+               formatter={(value: any) => [formatAmount(Number(value ?? 0)), 'Value']}
             />
           </PieChart>
         </ResponsiveContainer>
@@ -180,6 +180,11 @@ export default function Portfolio() {
 
   const editingHolding = editingId ? holdings.find(h => h.id === editingId) : undefined
 
+  const priceAsOf = portfolio?.holdings.find(h => h.price_as_of)?.price_as_of
+  const asOfLabel = priceAsOf
+    ? `Prices as of ${new Date(priceAsOf).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+    : null
+
   return (
     <div className="space-y-6">
       <ConfirmDialog
@@ -240,7 +245,9 @@ export default function Portfolio() {
       {loading ? (
         <LoadingList rows={5} />
       ) : portfolio && portfolio.holdings.length > 0 ? (
-        <div className="overflow-x-auto">
+        <div>
+          {asOfLabel && <p className="text-xs text-ash/60 mb-2">{asOfLabel}</p>}
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-ash text-xs uppercase tracking-wider border-b border-[rgba(237,237,243,0.06)]">
@@ -269,9 +276,15 @@ export default function Portfolio() {
                   </td>
                   <td className="text-right py-3 px-2 text-ivory">{h.shares}</td>
                   <td className="text-right py-3 px-2 text-ash">{formatAmount(h.cost_basis, currency)}</td>
-                  <td className="text-right py-3 px-2 text-ivory">{h.current_price > 0 ? formatAmount(h.current_price, currency) : '—'}</td>
-                  <td className={`text-right py-3 px-2 ${h.change_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                    {h.change_pct !== 0 ? `${h.change_pct >= 0 ? '+' : ''}${h.change_pct.toFixed(2)}%` : '—'}
+                  <td className="text-right py-3 px-2 text-ivory">
+                    {h.price_unavailable ? (
+                      <span className="text-ash">{formatAmount(h.current_price, currency)} <span className="text-ash/50 text-xs">(stale)</span></span>
+                    ) : (
+                      h.current_price > 0 ? formatAmount(h.current_price, currency) : '—'
+                    )}
+                  </td>
+                  <td className={`text-right py-3 px-2 ${h.price_unavailable ? 'text-ash' : h.change_pct >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {h.price_unavailable ? '—' : h.change_pct !== 0 ? `${h.change_pct >= 0 ? '+' : ''}${h.change_pct.toFixed(2)}%` : '—'}
                   </td>
                   <td className="text-right py-3 px-2 text-ivory font-medium">{formatAmount(h.current_value, currency)}</td>
                   <td className={`text-right py-3 px-2 font-medium ${h.gain_loss >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -288,6 +301,7 @@ export default function Portfolio() {
               ))}
             </tbody>
           </table>
+        </div>
         </div>
       ) : (
         <GlassCard className="p-8 text-center" hover={false}>

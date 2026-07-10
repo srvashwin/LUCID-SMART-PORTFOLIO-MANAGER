@@ -76,8 +76,16 @@ def portfolio(db: Session = Depends(get_db), user: User = Depends(get_current_us
 
     for h in holdings:
         price_info = get_price_for_ticker(h.ticker, db)
-        current_price = price_info["price"]
-        change_pct = price_info["change_pct"]
+        price_as_of = None
+        if price_info is None:
+            current_price = h.cost_basis
+            change_pct = 0.0
+            price_unavailable = True
+        else:
+            current_price = price_info["price"]
+            change_pct = price_info["change_pct"]
+            price_unavailable = False
+            price_as_of = price_info.get("updated_at")
         current_value = round(h.shares * current_price, 2)
         cost = round(h.shares * h.cost_basis, 2) if h.cost_basis else 0.0
         gain_loss = round(current_value - cost, 2)
@@ -97,6 +105,8 @@ def portfolio(db: Session = Depends(get_db), user: User = Depends(get_current_us
             gain_loss=gain_loss,
             gain_loss_pct=gain_loss_pct,
             notes=h.notes,
+            price_unavailable=price_unavailable,
+            price_as_of=price_as_of,
         ))
 
     total_gain_loss = round(total_value - total_cost, 2)

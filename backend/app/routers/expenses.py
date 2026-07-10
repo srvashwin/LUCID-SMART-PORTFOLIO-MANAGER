@@ -14,6 +14,7 @@ from app.models.category import Category
 from app.models.spending_rule import SpendingRule
 from app.schemas import ExpenseCreate, ExpenseUpdate, ExpenseChat, ExpenseOut, ExpenseSplitCreate, ExpenseSplitOut
 from app.utils import get_current_user
+from app.deps import verify_household_access
 from app.services.ai_service import classify_expense
 from app.config import settings
 
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 
 @router.post("/chat", response_model=ExpenseOut)
 def chat_expense(data: ExpenseChat, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    verify_household_access(data.household_id, user, db)
     result = classify_expense(data.message, data.use_case)
 
     expense = Expense(
@@ -65,6 +67,7 @@ def chat_expense(data: ExpenseChat, db: Session = Depends(get_db), user: User = 
 
 @router.post("", response_model=ExpenseOut)
 def create_expense(data: ExpenseCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    verify_household_access(data.household_id, user, db)
     expense = Expense(user_id=user.id, **data.model_dump())
     db.add(expense)
     db.commit()
@@ -95,6 +98,7 @@ def list_expenses(
     user: User = Depends(get_current_user),
 ):
     query = db.query(Expense).filter(Expense.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(Expense.household_id == household_id)
     else:
@@ -116,6 +120,7 @@ def expense_stats(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    verify_household_access(household_id, user, db)
     now = date.today()
     this_month_start = now.replace(day=1)
     last_month_end = this_month_start - timedelta(days=1)
@@ -183,6 +188,7 @@ def tax_summary(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    verify_household_access(household_id, user, db)
     yr = year or date.today().year
     base_filter = [
         Expense.user_id == user.id,

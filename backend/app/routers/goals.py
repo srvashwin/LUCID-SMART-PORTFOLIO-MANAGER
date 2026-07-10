@@ -9,6 +9,7 @@ from app.models.investment_goal import InvestmentGoal
 from datetime import date, datetime
 from app.schemas import UserGoalCreate, UserGoalOut, InvestmentGoalCreate, InvestmentGoalOut, GoalTimelineRequest, GoalTimelineResponse
 from app.utils import get_current_user
+from app.deps import verify_household_access
 
 router = APIRouter(prefix="/api/goals", tags=["goals"])
 
@@ -18,6 +19,7 @@ router = APIRouter(prefix="/api/goals", tags=["goals"])
 @router.post("/user-goals", response_model=UserGoalOut)
 def create_user_goal(data: UserGoalCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     goal = UserGoal(user_id=user.id, **data.model_dump())
+    verify_household_access(data.household_id, user, db)
     db.add(goal)
     db.commit()
     db.refresh(goal)
@@ -31,6 +33,7 @@ def list_user_goals(
     user: User = Depends(get_current_user),
 ):
     query = db.query(UserGoal).filter(UserGoal.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(UserGoal.household_id == household_id)
     else:
@@ -43,6 +46,7 @@ def update_user_goal(goal_id: int, data: UserGoalCreate, db: Session = Depends(g
     goal = db.query(UserGoal).filter(UserGoal.id == goal_id, UserGoal.user_id == user.id).first()
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
+    verify_household_access(data.household_id, user, db)
     for key, val in data.model_dump().items():
         setattr(goal, key, val)
     db.commit()
@@ -65,6 +69,7 @@ def delete_user_goal(goal_id: int, db: Session = Depends(get_db), user: User = D
 @router.post("/investment", response_model=InvestmentGoalOut)
 def create_investment_goal(data: InvestmentGoalCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     goal = InvestmentGoal(user_id=user.id, **data.model_dump())
+    verify_household_access(data.household_id, user, db)
     db.add(goal)
     db.commit()
     db.refresh(goal)
@@ -78,6 +83,7 @@ def list_investment_goals(
     user: User = Depends(get_current_user),
 ):
     query = db.query(InvestmentGoal).filter(InvestmentGoal.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(InvestmentGoal.household_id == household_id)
     else:
@@ -90,6 +96,7 @@ def update_investment_goal(goal_id: int, data: InvestmentGoalCreate, db: Session
     goal = db.query(InvestmentGoal).filter(InvestmentGoal.id == goal_id, InvestmentGoal.user_id == user.id).first()
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
+    verify_household_access(data.household_id, user, db)
     for key, val in data.model_dump().items():
         setattr(goal, key, val)
     db.commit()

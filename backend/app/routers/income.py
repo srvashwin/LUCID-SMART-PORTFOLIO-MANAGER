@@ -8,12 +8,14 @@ from app.models.user import User
 from app.models.income import Income
 from app.schemas import IncomeCreate, IncomeUpdate, IncomeOut
 from app.utils import get_current_user
+from app.deps import verify_household_access
 
 router = APIRouter(prefix="/api/income", tags=["income"])
 
 
 @router.post("", response_model=IncomeOut)
 def create_income(data: IncomeCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    verify_household_access(data.household_id, user, db)
     income = Income(user_id=user.id, **data.model_dump())
     db.add(income)
     db.commit()
@@ -28,6 +30,7 @@ def list_incomes(
     user: User = Depends(get_current_user),
 ):
     query = db.query(Income).filter(Income.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(Income.household_id == household_id)
     else:
@@ -42,6 +45,7 @@ def latest_income(
     user: User = Depends(get_current_user),
 ):
     query = db.query(Income).filter(Income.user_id == user.id)
+    verify_household_access(household_id, user, db)
     if household_id is not None:
         query = query.filter(Income.household_id == household_id)
     else:

@@ -496,6 +496,8 @@ class PortfolioHolding(BaseModel):
     gain_loss: float
     gain_loss_pct: float
     notes: str
+    price_unavailable: bool = False
+    price_as_of: Optional[datetime] = None
 
 
 class PortfolioResponse(BaseModel):

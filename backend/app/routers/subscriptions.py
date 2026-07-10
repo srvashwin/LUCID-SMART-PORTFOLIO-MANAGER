@@ -10,6 +10,7 @@ from app.models.expense import Expense
 from app.models.recurring import RecurringTransaction
 from app.schemas import DetectedSubscription, SubscriptionDetectResponse, PromoteSubscriptionRequest, RecurringOut
 from app.utils import get_current_user
+from app.deps import verify_household_access
 
 router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
 
@@ -20,6 +21,7 @@ def detect_subscriptions(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
+    verify_household_access(household_id, user, db)
     expense_filter = [Expense.user_id == user.id]
     if household_id is not None:
         expense_filter.append(Expense.household_id == household_id)
