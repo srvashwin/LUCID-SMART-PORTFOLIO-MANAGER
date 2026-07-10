@@ -70,7 +70,7 @@ def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(g
     account = db.query(Account).filter(Account.id == account_id, Account.user_id == user.id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")
-    for key, val in data.model_dump().items():
+    for key, val in data.model_dump(exclude_none=True).items():
         setattr(account, key, val)
     db.commit()
     db.refresh(account)
