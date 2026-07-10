@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { HouseholdProvider } from '../hooks/useHousehold'
 import { ToastProvider } from './Toast'
 import Logo from './Logo'
 import HelpBot from './HelpBot'
 import WelcomePopup from './WelcomePopup'
+import CommandPalette from './CommandPalette'
 import {
   DashboardIcon, ChatIcon, ExpenseIcon, SubscriptionIcon, RuleIcon,
   GoalIcon, AnalyzeIcon, BankIcon, ReportIcon, AccountIcon, HelpIcon, BudgetIcon, PortfolioIcon, RecurringIcon, HouseholdIcon, IncomeIcon,
@@ -148,9 +149,11 @@ export default function Layout() {
         <AnimatePresence>
           {(mobileOpen || mobileMounted) && (
             <motion.aside
-              key="drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Navigation menu"
               initial={{ x: '-100%' }}
-              animate={{ x: mobileOpen ? 0 : '-100%' }}
+              animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="fixed inset-y-0 left-0 z-50 w-52 glass-strong flex flex-col md:hidden"
@@ -169,18 +172,29 @@ export default function Layout() {
         <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 overflow-auto max-w-6xl mx-auto w-full min-h-screen">
           {/* Top header */}
           <div className="flex items-center justify-end gap-3 mb-6">
-            <button onClick={() => navigate('/help')} className="w-9 h-9 flex items-center justify-center rounded-lg text-ash hover:text-ivory hover:bg-[rgba(237,237,243,0.04)] transition-all" title="Help">
+            <button onClick={() => navigate('/help')} className="w-9 h-9 flex items-center justify-center rounded-lg text-ash hover:text-ivory hover:bg-[rgba(237,237,243,0.04)] transition-all" aria-label="Help">
               <HelpIcon className="w-5 h-5" />
             </button>
-            <button onClick={() => navigate('/account')} className="w-9 h-9 flex items-center justify-center rounded-lg text-ash hover:text-ivory hover:bg-[rgba(237,237,243,0.04)] transition-all" title="Account">
+            <button onClick={() => navigate('/account')} className="w-9 h-9 flex items-center justify-center rounded-lg text-ash hover:text-ivory hover:bg-[rgba(237,237,243,0.04)] transition-all" aria-label="Account settings">
               <AccountIcon className="w-5 h-5" />
             </button>
           </div>
-          <Outlet />
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={useLocation().pathname}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         <HelpBot />
         <WelcomePopup />
+        <CommandPalette />
       </div>
       </HouseholdProvider>
     </ToastProvider>
