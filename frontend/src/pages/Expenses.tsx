@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import api from '../services/api'
 import type { Expense, ExpenseSplit } from '../types'
 import GlassCard from '../components/GlassCard'
@@ -254,81 +254,73 @@ export default function Expenses() {
       <Pagination page={pag.page} totalPages={pag.totalPages} hasPrev={pag.hasPrev} hasNext={pag.hasNext} onPrev={pag.prevPage} onNext={pag.nextPage} onGoTo={pag.goToPage} />
 
       {/* Split Modal */}
-      <AnimatePresence>
-        {splitExpense && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
-            onClick={() => setSplitExpense(null)}
+      {splitExpense && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+          onClick={() => setSplitExpense(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-[#1e1e2a] border border-[rgba(237,237,243,0.08)] rounded-2xl w-full max-w-md p-6 space-y-4"
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#1e1e2a] border border-[rgba(237,237,243,0.08)] rounded-2xl w-full max-w-md p-6 space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-ivory">Split Expense</h2>
-                <button onClick={() => setSplitExpense(null)} className="text-ash hover:text-ivory transition-colors">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                </button>
-              </div>
-              <p className="text-sm text-ash">
-                Splitting <span className="text-ivory font-medium">{formatAmount(splitExpense.amount, currency)}</span> — {splitExpense.description || splitExpense.category}
-              </p>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-ivory">Split Expense</h2>
+              <button onClick={() => setSplitExpense(null)} className="text-ash hover:text-ivory transition-colors">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+            <p className="text-sm text-ash">
+              Splitting <span className="text-ivory font-medium">{formatAmount(splitExpense.amount, currency)}</span> — {splitExpense.description || splitExpense.category}
+            </p>
 
-              {/* Existing splits */}
-              {splits.length > 0 && (
-                <div className="space-y-1.5">
-                  <p className="text-xs text-ash font-medium uppercase tracking-wider">Splits ({formatAmount(totalSplitAmount, currency)} / {formatAmount(splitExpense.amount, currency)})</p>
-                  {splits.map(sp => (
-                    <div key={sp.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-[rgba(237,237,243,0.03)]">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getCategoryColor(sp.category) }} />
-                        <span className="text-sm text-ivory">{sp.category}</span>
-                        {sp.description && <span className="text-xs text-ash">— {sp.description}</span>}
-                      </div>
-                      <span className="text-sm text-ivory font-medium">{formatAmount(sp.amount, currency)}</span>
+            {/* Existing splits */}
+            {splits.length > 0 && (
+              <div className="space-y-1.5">
+                <p className="text-xs text-ash font-medium uppercase tracking-wider">Splits ({formatAmount(totalSplitAmount, currency)} / {formatAmount(splitExpense.amount, currency)})</p>
+                {splits.map(sp => (
+                  <div key={sp.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-[rgba(237,237,243,0.03)]">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: getCategoryColor(sp.category) }} />
+                      <span className="text-sm text-ivory">{sp.category}</span>
+                      {sp.description && <span className="text-xs text-ash">— {sp.description}</span>}
                     </div>
-                  ))}
-                </div>
-              )}
+                    <span className="text-sm text-ivory font-medium">{formatAmount(sp.amount, currency)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
 
-              {/* Add split form */}
-              <form onSubmit={handleAddSplit} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-ash mb-1">Amount</label>
-                    <input type="number" step="0.01" required placeholder="0.00" value={splitForm.amount}
-                      onChange={e => setSplitForm(f => ({ ...f, amount: e.target.value }))}
-                      className="w-full px-3 py-2 bg-[#14141e] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-ash mb-1">Category</label>
-                    <select value={splitForm.category} onChange={e => setSplitForm(f => ({ ...f, category: e.target.value }))}
-                      className="w-full px-3 py-2 bg-[#14141e] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors">
-                      {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                </div>
+            {/* Add split form */}
+            <form onSubmit={handleAddSplit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-ash mb-1">Description (optional)</label>
-                  <input type="text" placeholder="e.g. My portion" value={splitForm.description}
-                    onChange={e => setSplitForm(f => ({ ...f, description: e.target.value }))}
+                  <label className="block text-xs text-ash mb-1">Amount</label>
+                  <input type="number" step="0.01" required placeholder="0.00" value={splitForm.amount}
+                    onChange={e => setSplitForm(f => ({ ...f, amount: e.target.value }))}
                     className="w-full px-3 py-2 bg-[#14141e] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors" />
                 </div>
-                <button type="submit"
-                  className="w-full px-4 py-2 rounded-xl text-sm font-medium bg-[#5266eb] text-white hover:brightness-110 transition-all">
-                  Add Split
-                </button>
-              </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                <div>
+                  <label className="block text-xs text-ash mb-1">Category</label>
+                  <select value={splitForm.category} onChange={e => setSplitForm(f => ({ ...f, category: e.target.value }))}
+                    className="w-full px-3 py-2 bg-[#14141e] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors">
+                    {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-ash mb-1">Description (optional)</label>
+                <input type="text" placeholder="e.g. My portion" value={splitForm.description}
+                  onChange={e => setSplitForm(f => ({ ...f, description: e.target.value }))}
+                  className="w-full px-3 py-2 bg-[#14141e] text-ivory rounded-lg text-sm border border-[rgba(237,237,243,0.08)] outline-none focus:border-[#5266eb] transition-colors" />
+              </div>
+              <button type="submit"
+                className="w-full px-4 py-2 rounded-xl text-sm font-medium bg-[#5266eb] text-white hover:brightness-110 transition-all">
+                Add Split
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
