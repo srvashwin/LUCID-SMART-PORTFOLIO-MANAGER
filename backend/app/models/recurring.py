@@ -18,4 +18,5 @@ class RecurringTransaction(Base):
     next_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=True)
     is_active = Column(Boolean, default=True)
+    household_id = Column(Integer, ForeignKey("households.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

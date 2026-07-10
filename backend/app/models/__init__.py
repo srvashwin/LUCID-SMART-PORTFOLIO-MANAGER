@@ -12,6 +12,8 @@ from app.models.import_batch import ImportBatch
 from app.models.holding import Holding, HoldingPrice
 from app.models.net_worth_snapshot import NetWorthSnapshot
 from app.models.recurring import RecurringTransaction
+from app.models.household import Household, HouseholdMember
+from app.models.split import ExpenseSplit
 
 __all__ = [
     "User",
@@ -30,4 +32,7 @@ __all__ = [
     "HoldingPrice",
     "NetWorthSnapshot",
     "RecurringTransaction",
+    "Household",
+    "HouseholdMember",
+    "ExpenseSplit",
 ]

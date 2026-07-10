@@ -12,4 +12,5 @@ class SpendingRule(Base):
     max_amount = Column(Float, nullable=False)
     period = Column(String, nullable=False, default="monthly")
     is_active = Column(Boolean, default=True)
+    household_id = Column(Integer, ForeignKey("households.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -7,6 +7,7 @@ import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 import { useAuth } from '../hooks/useAuth'
+import { useHousehold } from '../hooks/useHousehold'
 
 type AgentIntent = 'add_income' | 'add_expense' | 'add_investment_goal' | 'add_savings_goal' | 'add_to_fund' | 'add_spending_rule' | 'change_currency' | 'general'
 
@@ -150,6 +151,7 @@ function ResultCard({ result }: { result: AgentResult }) {
 
 export default function Chat() {
   const { user } = useAuth()
+  const { activeHouseholdId } = useHousehold()
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const stored = sessionStorage.getItem('chat_messages')
@@ -186,7 +188,9 @@ export default function Chat() {
     setLoading(true)
 
     try {
-      const res = await api.post('/ai/agent', { message: input })
+      const agentPayload: any = { message: input }
+      if (activeHouseholdId) agentPayload.household_id = activeHouseholdId
+      const res = await api.post('/ai/agent', agentPayload)
       const result: AgentResult = res.data
       if (result.intent !== 'general') {
         window.dispatchEvent(new CustomEvent('lucid-data-changed'))

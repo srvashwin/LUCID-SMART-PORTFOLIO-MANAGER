@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
 from collections import defaultdict
+from typing import Optional
 
 from app.database import get_db
 from app.models.user import User
@@ -14,10 +15,17 @@ router = APIRouter(prefix="/api/subscriptions", tags=["subscriptions"])
 
 
 @router.get("/detect", response_model=SubscriptionDetectResponse)
-def detect_subscriptions(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    expenses = db.query(Expense).filter(
-        Expense.user_id == user.id,
-    ).order_by(Expense.date.desc()).all()
+def detect_subscriptions(
+    household_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    expense_filter = [Expense.user_id == user.id]
+    if household_id is not None:
+        expense_filter.append(Expense.household_id == household_id)
+    else:
+        expense_filter.append(Expense.household_id == None)
+    expenses = db.query(Expense).filter(*expense_filter).order_by(Expense.date.desc()).all()
 
     single_subscription_expenses = []
     merchant_groups = defaultdict(list)
@@ -123,6 +131,7 @@ def promote_to_recurring(data: PromoteSubscriptionRequest, db: Session = Depends
         next_date=next_date,
         end_date=None,
         is_active=True,
+        household_id=None,
     )
     db.add(recurring)
     db.commit()

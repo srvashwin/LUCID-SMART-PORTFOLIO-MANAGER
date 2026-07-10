@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
+import { HouseholdProvider } from '../hooks/useHousehold'
 import { ToastProvider } from './Toast'
 import Logo from './Logo'
 import HelpBot from './HelpBot'
 import WelcomePopup from './WelcomePopup'
 import {
   DashboardIcon, ChatIcon, ExpenseIcon, SubscriptionIcon, RuleIcon,
-  GoalIcon, AnalyzeIcon, BankIcon, ReportIcon, AccountIcon, HelpIcon, BudgetIcon, PortfolioIcon, RecurringIcon,
+  GoalIcon, AnalyzeIcon, BankIcon, ReportIcon, AccountIcon, HelpIcon, BudgetIcon, PortfolioIcon, RecurringIcon, HouseholdIcon, IncomeIcon,
 } from './icons'
 
 const navGroups = [
@@ -22,6 +23,7 @@ const navGroups = [
   {
     label: 'Money',
     items: [
+      { to: '/income', label: 'Income', icon: IncomeIcon },
       { to: '/expenses', label: 'Expenses', icon: ExpenseIcon },
       { to: '/subscriptions', label: 'Subscriptions', icon: SubscriptionIcon },
       { to: '/recurring', label: 'Recurring', icon: RecurringIcon },
@@ -41,19 +43,19 @@ const navGroups = [
   },
 ]
 
-const bottomItems = [
-  { to: '/account', label: 'Account', icon: AccountIcon },
-  { to: '/help', label: 'Help', icon: HelpIcon },
-]
-
 function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
-  const { logout } = useAuth()
-  const navigate = useNavigate()
-
-  const handleLogout = () => {
-    logout()
-    navigate('/login')
-  }
+  const displayNavGroups = navGroups.map(g => {
+    if (g.label === 'Insights') {
+      return {
+        ...g,
+        items: [
+          ...g.items,
+          { to: '/household', label: 'Household', icon: HouseholdIcon },
+        ],
+      }
+    }
+    return g
+  })
 
   return (
     <>
@@ -61,7 +63,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
         <Logo />
       </div>
       <nav className="flex-1 px-3 py-5 space-y-6 overflow-y-auto">
-        {navGroups.map((group) => (
+        {displayNavGroups.map((group) => (
           <div key={group.label}>
             <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[#5c5c68]">
               {group.label}
@@ -88,33 +90,6 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
           </div>
         ))}
       </nav>
-      <div className="px-2 py-2 border-t border-[rgba(237,237,243,0.06)] space-y-0.5">
-        {bottomItems.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            onClick={onNavClick}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition-all duration-200 ${
-                isActive
-                  ? 'bg-[rgba(82,102,235,0.12)] text-[#9cb4e8] font-medium'
-                  : 'text-[#d4d4dd] hover:text-ivory hover:bg-[rgba(237,237,243,0.04)]'
-              }`
-            }
-          >
-            <item.icon className="w-5 h-5" />
-            {item.label}
-          </NavLink>
-        ))}
-      </div>
-      <div className="px-3 py-3 border-t border-[rgba(237,237,243,0.06)]">
-        <button
-          onClick={handleLogout}
-          className="w-full text-sm text-[#d4d4dd] hover:text-red-400 transition-colors px-3 py-2 rounded-lg hover:bg-[rgba(237,237,243,0.04)] text-left"
-        >
-          Sign out
-        </button>
-      </div>
     </>
   )
 }
@@ -122,6 +97,7 @@ function SidebarContent({ onNavClick }: { onNavClick?: () => void }) {
 export default function Layout() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [mobileMounted, setMobileMounted] = useState(false)
+  const navigate = useNavigate()
 
   const closeMobile = () => {
     setMobileOpen(false)
@@ -135,6 +111,7 @@ export default function Layout() {
 
   return (
     <ToastProvider>
+      <HouseholdProvider>
       <div className="min-h-screen bg-[#08080f] flex">
         {/* Hamburger */}
         <button
@@ -191,12 +168,22 @@ export default function Layout() {
 
         {/* Main content */}
         <main className="flex-1 p-4 md:p-8 pt-16 md:pt-8 overflow-auto max-w-6xl mx-auto w-full min-h-screen">
+          {/* Top header */}
+          <div className="flex items-center justify-end gap-3 mb-6">
+            <button onClick={() => navigate('/help')} className="w-9 h-9 flex items-center justify-center rounded-lg text-ash hover:text-ivory hover:bg-[rgba(237,237,243,0.04)] transition-all" title="Help">
+              <HelpIcon className="w-5 h-5" />
+            </button>
+            <button onClick={() => navigate('/account')} className="w-9 h-9 flex items-center justify-center rounded-lg text-ash hover:text-ivory hover:bg-[rgba(237,237,243,0.04)] transition-all" title="Account">
+              <AccountIcon className="w-5 h-5" />
+            </button>
+          </div>
           <Outlet />
         </main>
 
         <HelpBot />
         <WelcomePopup />
       </div>
+      </HouseholdProvider>
     </ToastProvider>
   )
 }

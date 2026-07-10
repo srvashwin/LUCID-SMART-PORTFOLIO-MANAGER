@@ -14,4 +14,5 @@ class InvestmentGoal(Base):
     monthly_contribution = Column(Float, default=0.0)
     expected_return_rate = Column(Float, default=7.0)
     start_date = Column(Date, nullable=False)
+    household_id = Column(Integer, ForeignKey("households.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

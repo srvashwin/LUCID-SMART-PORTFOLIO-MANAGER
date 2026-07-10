@@ -4,6 +4,8 @@ export interface User {
   name: string
   currency: string
   is_active: boolean
+  email_verified: boolean
+  avatar_url: string | null
   created_at: string
 }
 
@@ -29,6 +31,20 @@ export interface Expense {
   source: string
   import_batch_id: number | null
   date: string
+  household_id: number | null
+  tax_deductible: boolean
+  tax_category: string | null
+  receipt_url: string | null
+  created_at: string
+}
+
+export interface ExpenseSplit {
+  id: number
+  expense_id: number
+  user_id: number
+  amount: number
+  category: string
+  description: string
   created_at: string
 }
 
@@ -279,4 +295,29 @@ export interface UpcomingOccurrence {
 export interface UpcomingResponse {
   occurrences: UpcomingOccurrence[]
   total: number
+}
+
+export interface Household {
+  id: number
+  name: string
+  invite_code: string | null
+  created_by: number
+  created_at: string
+}
+
+export interface HouseholdMember {
+  id: number
+  household_id: number
+  user_id: number
+  role: string
+  joined_at: string
+  user_name: string
+  user_email: string
+}
+
+export interface HouseholdDetail {
+  household: Household
+  members: HouseholdMember[]
+  is_owner: boolean
+  is_admin: boolean
 }

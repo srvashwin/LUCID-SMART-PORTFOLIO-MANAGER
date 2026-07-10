@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database import get_db
 from app.models.user import User
@@ -25,8 +25,17 @@ def create_user_goal(data: UserGoalCreate, db: Session = Depends(get_db), user: 
 
 
 @router.get("/user-goals", response_model=List[UserGoalOut])
-def list_user_goals(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return db.query(UserGoal).filter(UserGoal.user_id == user.id).all()
+def list_user_goals(
+    household_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    query = db.query(UserGoal).filter(UserGoal.user_id == user.id)
+    if household_id is not None:
+        query = query.filter(UserGoal.household_id == household_id)
+    else:
+        query = query.filter(UserGoal.household_id == None)
+    return query.all()
 
 
 @router.put("/user-goals/{goal_id}", response_model=UserGoalOut)
@@ -63,8 +72,17 @@ def create_investment_goal(data: InvestmentGoalCreate, db: Session = Depends(get
 
 
 @router.get("/investment", response_model=List[InvestmentGoalOut])
-def list_investment_goals(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return db.query(InvestmentGoal).filter(InvestmentGoal.user_id == user.id).all()
+def list_investment_goals(
+    household_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    query = db.query(InvestmentGoal).filter(InvestmentGoal.user_id == user.id)
+    if household_id is not None:
+        query = query.filter(InvestmentGoal.household_id == household_id)
+    else:
+        query = query.filter(InvestmentGoal.household_id == None)
+    return query.all()
 
 
 @router.put("/investment/{goal_id}", response_model=InvestmentGoalOut)

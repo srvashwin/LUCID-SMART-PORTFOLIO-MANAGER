@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database import get_db
 from app.models.user import User
@@ -21,8 +21,17 @@ def create_rule(data: SpendingRuleCreate, db: Session = Depends(get_db), user: U
 
 
 @router.get("", response_model=List[SpendingRuleOut])
-def list_rules(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return db.query(SpendingRule).filter(SpendingRule.user_id == user.id).all()
+def list_rules(
+    household_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    query = db.query(SpendingRule).filter(SpendingRule.user_id == user.id)
+    if household_id is not None:
+        query = query.filter(SpendingRule.household_id == household_id)
+    else:
+        query = query.filter(SpendingRule.household_id == None)
+    return query.all()
 
 
 @router.put("/{rule_id}", response_model=SpendingRuleOut)

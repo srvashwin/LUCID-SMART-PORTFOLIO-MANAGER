@@ -1,19 +1,23 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { useAuth } from '../hooks/useAuth'
 import GlassCard from '../components/GlassCard'
 import PillButton from '../components/PillButton'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { useToast } from '../components/Toast'
 import { getAllCurrencies } from '../utils/format'
 
 export default function Account() {
-  const { user, refreshUser } = useAuth()
+  const { user, refreshUser, logout } = useAuth()
   const [currency, setCurrency] = useState(user?.currency || 'USD')
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [saved, setSaved] = useState('')
+  const [confirmSignOut, setConfirmSignOut] = useState(false)
   const { toast } = useToast()
+  const navigate = useNavigate()
 
   const handleChangePassword = (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,6 +130,15 @@ export default function Account() {
         </div>
       </GlassCard>
 
+      {/* Sign Out */}
+      <GlassCard className="p-4 md:p-6" hover={false}>
+        <h2 className="text-sm font-medium text-ivory mb-2">Sign Out</h2>
+        <p className="text-xs text-ash mb-3">Sign out of your account on this device.</p>
+        <PillButton variant="outline" onClick={() => setConfirmSignOut(true)}>
+          Sign Out
+        </PillButton>
+      </GlassCard>
+
       {/* Danger Zone */}
       <GlassCard className="p-4 md:p-6 border border-red-400/20" hover={false}>
         <h2 className="text-sm font-medium text-red-400 mb-2">Danger Zone</h2>
@@ -134,6 +147,14 @@ export default function Account() {
           Delete Account
         </PillButton>
       </GlassCard>
+
+      <ConfirmDialog
+        open={confirmSignOut}
+        title="Sign Out?"
+        message="Are you sure you want to sign out?"
+        onConfirm={() => { logout(); navigate('/login') }}
+        onCancel={() => setConfirmSignOut(false)}
+      />
     </div>
   )
 }

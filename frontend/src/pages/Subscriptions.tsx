@@ -9,20 +9,23 @@ import PillButton from '../components/PillButton'
 import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
+import { useHousehold } from '../hooks/useHousehold'
 
 export default function Subscriptions() {
   const [data, setData] = useState<SubscriptionDetectResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const { currency } = useCurrency()
+  const { activeHouseholdId } = useHousehold()
   const { toast } = useToast()
 
   useEffect(() => {
-    api.get('/subscriptions/detect')
+    const params = activeHouseholdId ? { household_id: activeHouseholdId } : {}
+    api.get('/subscriptions/detect', { params })
       .then(r => setData(r.data))
       .catch(() => toast('Failed to detect subscriptions', 'error'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [activeHouseholdId])
 
   const visible = (data?.subscriptions || []).filter(s => !dismissed.has(s.merchant))
   const visibleTotal = visible.reduce((s, sub) => s + sub.amount, 0)

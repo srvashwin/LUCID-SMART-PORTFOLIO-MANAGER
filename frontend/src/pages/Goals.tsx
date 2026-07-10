@@ -11,6 +11,7 @@ import { LoadingCard } from '../components/LoadingSkeleton'
 import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
+import { useHousehold } from '../hooks/useHousehold'
 
 export default function Goals() {
   const [invGoals, setInvGoals] = useState<InvestmentGoal[]>([])
@@ -34,17 +35,19 @@ export default function Goals() {
   const [confirmId, setConfirmId] = useState<number | null>(null)
 
   const { currency } = useCurrency()
+  const { activeHouseholdId } = useHousehold()
   const { toast } = useToast()
 
   const fetch = () => {
     setLoading(true)
+    const hhParam = activeHouseholdId ? { household_id: activeHouseholdId } : {}
     Promise.all([
-      api.get('/goals/investment').then(r => setInvGoals(r.data)),
-      api.get('/goals/user-goals').then(r => setUserGoals(r.data)),
-      api.get('/funds').then(r => setFunds(r.data)),
+      api.get('/goals/investment', { params: hhParam }).then(r => setInvGoals(r.data)),
+      api.get('/goals/user-goals', { params: hhParam }).then(r => setUserGoals(r.data)),
+      api.get('/funds', { params: hhParam }).then(r => setFunds(r.data)),
     ]).catch(() => {}).finally(() => setLoading(false))
   }
-  useEffect(fetch, [])
+  useEffect(fetch, [activeHouseholdId])
 
   useEffect(() => {
     if (goalTarget && goalTargetDate) {

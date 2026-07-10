@@ -4,6 +4,7 @@ import api from '../services/api'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 import { useAuth } from '../hooks/useAuth'
+import { useHousehold } from '../hooks/useHousehold'
 
 type Message = { role: 'bot' | 'user'; text: string; result?: AgentResult }
 type AgentIntent = 'add_income' | 'add_expense' | 'add_investment_goal' | 'add_savings_goal' | 'add_to_fund' | 'add_spending_rule' | 'change_currency' | 'general'
@@ -175,6 +176,7 @@ function FundConfirmCard({ result, onDone }: { result: AgentResult; onDone: () =
 
 export default function HelpBot() {
   const { user } = useAuth()
+  const { activeHouseholdId } = useHousehold()
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
     { role: 'bot', text: user?.name ? `Hey ${user.name}! I'm Lucid Assistant. How can I help you?` : "Hey! I'm Lucid Assistant. How can I help you?" },
@@ -201,7 +203,9 @@ export default function HelpBot() {
     }
 
     try {
-      const res = await api.post('/ai/agent', { message: q })
+      const agentPayload: any = { message: q }
+      if (activeHouseholdId) agentPayload.household_id = activeHouseholdId
+      const res = await api.post('/ai/agent', agentPayload)
       const result: AgentResult = res.data
       if (result.intent !== 'general') {
         window.dispatchEvent(new CustomEvent('lucid-data-changed'))

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import api from '../services/api'
 import type { ExpenseStats, Income, InvestmentGoal, UserGoal, NetWorthResponse, NetWorthHistoryResponse, Budget, AccountData } from '../types'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
@@ -8,13 +9,16 @@ import GlassCard from '../components/GlassCard'
 import PillButton from '../components/PillButton'
 import ProgressRing from '../components/ProgressRing'
 import { LoadingCard } from '../components/LoadingSkeleton'
+import { useAuth } from '../hooks/useAuth'
 import { useToast } from '../components/Toast'
 import { formatAmount, getCurrencySymbol } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
+import { useHousehold } from '../hooks/useHousehold'
 import { getCategoryColor } from '../utils/colors'
 
 const ALL_WIDGETS = [
   { id: 'metrics', label: 'Metric Cards' },
+  { id: 'cashflow', label: 'Cash Flow Forecast' },
   { id: 'networth', label: 'Net Worth History' },
   { id: 'trend', label: 'Spending Trend' },
   { id: 'pie', label: 'Category Pie Chart' },
@@ -37,6 +41,95 @@ function loadWidgets(): Set<WidgetId> {
   return new Set(DEFAULT_WIDGETS)
 }
 
+function DashboardContextSelector() {
+  const { households, currentHousehold, setCurrentHouseholdId } = useHousehold()
+  const [open, setOpen] = useState(false)
+  const navigate = useNavigate()
+
+  const activeLabel = currentHousehold
+    ? currentHousehold.household.name
+    : 'Personal Budgeting'
+
+  const items = [
+    { id: null, label: 'Personal Budgeting', subtitle: 'Your own data' },
+    ...households.map(h => ({
+      id: h.id,
+      label: h.name,
+      subtitle: 'Household',
+    })),
+  ]
+
+  const activeItem = currentHousehold
+    ? items.find(i => i.id === currentHousehold.household.id)
+    : items[0]
+
+  return (
+    <div className="relative inline-block">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#272735] text-ivory text-sm border border-[rgba(237,237,243,0.08)] hover:bg-[#2f2f3d] transition-all"
+      >
+        <svg className="w-4 h-4 text-[#9cb4e8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+        <span className="font-medium">{activeLabel}</span>
+        <svg className={`w-3.5 h-3.5 text-ash transition-transform ${open ? 'rotate-180' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="absolute top-full left-0 mt-1.5 bg-[#1e1e2a] border border-[rgba(237,237,243,0.08)] rounded-xl shadow-xl z-50 overflow-hidden min-w-[200px]"
+          >
+            {items.map(item => {
+              const isActive = activeItem?.id === item.id
+              return (
+                <button
+                  key={String(item.id)}
+                  onClick={() => {
+                    setCurrentHouseholdId(item.id)
+                    setOpen(false)
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
+                    isActive ? 'bg-[rgba(82,102,235,0.12)]' : 'hover:bg-[rgba(237,237,243,0.04)]'
+                  }`}
+                >
+                  <div>
+                    <p className={`text-sm ${isActive ? 'text-[#9cb4e8]' : 'text-ivory'}`}>{item.label}</p>
+                    <p className="text-[10px] text-ash">{item.subtitle}</p>
+                  </div>
+                  {isActive && (
+                    <svg className="w-3.5 h-3.5 text-[#9cb4e8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </button>
+              )
+            })}
+            <div className="border-t border-[rgba(237,237,243,0.06)]">
+              <button
+                onClick={() => { setOpen(false); navigate('/household') }}
+                className="w-full flex items-center gap-2 px-4 py-2.5 text-left text-sm text-[#9cb4e8] hover:bg-[rgba(237,237,243,0.04)] transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+                </svg>
+                Add Household Budget
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 const CATEGORIES = [
   'Food & Dining', 'Transportation', 'Shopping', 'Bills & Utilities',
   'Entertainment', 'Health & Fitness', 'Education', 'Housing',
@@ -53,6 +146,7 @@ export default function Dashboard() {
   const [budget, setBudget] = useState<Budget | null>(null)
   const [accounts, setAccounts] = useState<AccountData[]>([])
   const [suggestions, setSuggestions] = useState<{ category: string; suggested_max: number; current_spend: number; reason: string }[]>([])
+  const [forecast, setForecast] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [refreshKey, setRefreshKey] = useState(0)
   const [widgets, setWidgets] = useState<Set<WidgetId>>(loadWidgets)
@@ -60,6 +154,8 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const { currency } = useCurrency()
   const symbol = getCurrencySymbol(currency)
+  const { activeHouseholdId } = useHousehold()
+  const { user } = useAuth()
   const { toast } = useToast()
 
   // Quick expense state
@@ -78,18 +174,20 @@ export default function Dashboard() {
 
   useEffect(() => {
     setLoading(true)
+    const hhParam = activeHouseholdId ? { household_id: activeHouseholdId } : {}
     Promise.all([
-      api.get('/expenses/stats').then(r => setStats(r.data)),
-      api.get('/income/latest').then(r => setIncome(r.data)),
-      api.get('/goals/investment').then(r => setInvGoals(r.data)),
-      api.get('/goals/user-goals').then(r => setUserGoals(r.data)),
+      api.get('/expenses/stats', { params: hhParam }).then(r => setStats(r.data)),
+      api.get('/income/latest', { params: hhParam }).then(r => setIncome(r.data)),
+      api.get('/goals/investment', { params: hhParam }).then(r => setInvGoals(r.data)),
+      api.get('/goals/user-goals', { params: hhParam }).then(r => setUserGoals(r.data)),
       api.get('/accounts/net-worth').then(r => setNetWorth(r.data)),
       api.get('/accounts/net-worth/history').then(r => setNetWorthHistory(r.data)),
-      api.get('/budgets/current').then(r => setBudget(r.data)),
+      api.get('/budgets/current', { params: hhParam }).then(r => setBudget(r.data)),
       api.get('/accounts').then(r => setAccounts(r.data)),
       api.post('/ai/rules-suggestions').then(r => setSuggestions(r.data.suggestions || [])),
+      api.get('/cashflow/forecast', { params: { days: 30, ...hhParam } }).then(r => setForecast(r.data)).catch(() => {}),
     ]).catch(() => {}).finally(() => setLoading(false))
-  }, [refreshKey])
+  }, [refreshKey, activeHouseholdId])
 
   useEffect(() => {
     localStorage.setItem('dashboard_widgets', JSON.stringify([...widgets]))
@@ -167,8 +265,11 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between animate-fade-in">
         <div>
-          <h1 className="text-3xl font-semibold text-ivory" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>Dashboard</h1>
-          <p className="text-ash text-sm mt-1">Your financial overview at a glance</p>
+          <p className="text-sm text-ash" style={{ fontWeight: 450 }}>Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}
+          </p>
+          <h1 className="text-2xl font-semibold text-ivory" style={{ fontWeight: 600, letterSpacing: '-0.02em' }}>
+            {user?.name?.split(' ')[0] || 'there'}
+          </h1>
         </div>
         <button
           onClick={() => setShowCustomize(!showCustomize)}
@@ -178,6 +279,9 @@ export default function Dashboard() {
           Customize
         </button>
       </div>
+
+      {/* Context selector */}
+      <DashboardContextSelector />
 
       {/* Customize Panel */}
       {showCustomize && (
@@ -294,6 +398,45 @@ export default function Dashboard() {
               />
               <MetricCard label="Transactions" value={String(stats?.category_breakdown.reduce((s, c) => s + c.count, 0) || 0)} delay={400} />
             </div>
+          )}
+
+          {/* Cash Flow Forecast */}
+          {w('cashflow') && forecast && forecast.daily_projections && forecast.daily_projections.length > 0 && (
+            <GlassCard className="p-5" delay={0.06}>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-sm font-medium text-ivory" style={{ fontWeight: 500 }}>30-Day Cash Flow Forecast</h2>
+                <div className="flex items-center gap-4 text-xs text-ash">
+                  <span>Start: <span className="text-ivory font-medium">{formatAmount(forecast.starting_balance, currency)}</span></span>
+                  <span>End: <span className={`font-medium ${forecast.ending_balance >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{formatAmount(forecast.ending_balance, currency)}</span></span>
+                  <span>Low: <span className={`font-medium ${forecast.lowest_balance >= 0 ? 'text-ivory' : 'text-red-400'}`}>{formatAmount(forecast.lowest_balance, currency)}</span></span>
+                </div>
+              </div>
+              <div className="h-48">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={forecast.daily_projections}>
+                    <defs>
+                      <linearGradient id="cfGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#5266eb" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#5266eb" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis dataKey="date" tick={{ fill: '#5c5c68', fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#5c5c68', fontSize: 10 }} axisLine={false} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ background: '#1e1e2a', border: '1px solid rgba(237,237,243,0.08)', borderRadius: 8, fontSize: 12 }}
+                      labelStyle={{ color: '#d4d4dd' }}
+                      formatter={(value: number) => [formatAmount(value, currency)]}
+                    />
+                    <Area type="monotone" dataKey="balance" stroke="#5266eb" strokeWidth={2} fill="url(#cfGrad)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              {forecast.days_until_zero !== null && (
+                <p className="text-xs text-red-400 mt-3">
+                  ⚠ Balance may reach zero in approximately {forecast.days_until_zero} days
+                </p>
+              )}
+            </GlassCard>
           )}
 
           {/* Net Worth History */}

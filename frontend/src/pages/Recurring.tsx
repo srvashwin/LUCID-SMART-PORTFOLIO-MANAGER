@@ -9,6 +9,7 @@ import { LoadingList } from '../components/LoadingSkeleton'
 import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
+import { useHousehold } from '../hooks/useHousehold'
 
 const CATEGORIES = [
   'Food & Dining', 'Transportation', 'Shopping', 'Bills & Utilities',
@@ -108,6 +109,7 @@ export default function Recurring() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [confirmId, setConfirmId] = useState<number | null>(null)
   const { currency } = useCurrency()
+  const { activeHouseholdId } = useHousehold()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -118,12 +120,13 @@ export default function Recurring() {
 
   const fetchData = () => {
     setLoading(true)
+    const hhParam = activeHouseholdId ? { household_id: activeHouseholdId } : {}
     Promise.all([
-      api.get('/recurring').then(r => setRecurringList(r.data)),
-      api.get('/recurring/upcoming?days=30').then(r => setUpcoming(r.data)),
+      api.get('/recurring', { params: hhParam }).then(r => setRecurringList(r.data)),
+      api.get('/recurring/upcoming', { params: { days: 30, ...hhParam } }).then(r => setUpcoming(r.data)),
     ]).catch(() => {}).finally(() => setLoading(false))
   }
-  useEffect(fetchData, [refreshKey])
+  useEffect(fetchData, [refreshKey, activeHouseholdId])
 
   const openAdd = () => {
     setEditingId(null); setShowForm(true)

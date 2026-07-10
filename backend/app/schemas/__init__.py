@@ -21,6 +21,8 @@ class UserOut(BaseModel):
     name: str
     currency: str
     is_active: bool
+    email_verified: bool
+    avatar_url: Optional[str]
     created_at: datetime
 
     class Config:
@@ -37,11 +39,31 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class VerifyEmailRequest(BaseModel):
+    token: str
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class IncomeCreate(BaseModel):
     amount: float
     frequency: str = "monthly"
     source: str = ""
     date: date
+    household_id: Optional[int] = None
+
+
+class IncomeUpdate(BaseModel):
+    amount: Optional[float] = None
+    frequency: Optional[str] = None
+    source: Optional[str] = None
+    date: Optional[date] = None
 
 
 class IncomeOut(BaseModel):
@@ -51,6 +73,7 @@ class IncomeOut(BaseModel):
     frequency: str
     source: str
     date: date
+    household_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -64,11 +87,26 @@ class ExpenseCreate(BaseModel):
     merchant: str = ""
     use_case: str = ""
     date: date
+    household_id: Optional[int] = None
+    tax_deductible: bool = False
+    tax_category: Optional[str] = None
+
+
+class ExpenseUpdate(BaseModel):
+    amount: Optional[float] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+    merchant: Optional[str] = None
+    use_case: Optional[str] = None
+    date: Optional[date] = None
+    tax_deductible: Optional[bool] = None
+    tax_category: Optional[str] = None
 
 
 class ExpenseChat(BaseModel):
     message: str
     use_case: Optional[str] = ""
+    household_id: Optional[int] = None
 
 
 class ExpenseOut(BaseModel):
@@ -83,6 +121,29 @@ class ExpenseOut(BaseModel):
     source: str = "manual"
     import_batch_id: Optional[int] = None
     date: date
+    household_id: Optional[int] = None
+    tax_deductible: bool
+    tax_category: Optional[str]
+    receipt_url: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ExpenseSplitCreate(BaseModel):
+    amount: float
+    category: str
+    description: str = ""
+
+
+class ExpenseSplitOut(BaseModel):
+    id: int
+    expense_id: int
+    user_id: int
+    amount: float
+    category: str
+    description: str
     created_at: datetime
 
     class Config:
@@ -93,6 +154,7 @@ class SpendingRuleCreate(BaseModel):
     category: str
     max_amount: float
     period: str = "monthly"
+    household_id: Optional[int] = None
 
 
 class SpendingRuleOut(BaseModel):
@@ -102,6 +164,7 @@ class SpendingRuleOut(BaseModel):
     max_amount: float
     period: str
     is_active: bool
+    household_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -115,6 +178,7 @@ class InvestmentGoalCreate(BaseModel):
     monthly_contribution: float = 0.0
     expected_return_rate: float = 7.0
     start_date: date
+    household_id: Optional[int] = None
 
 
 class InvestmentGoalOut(BaseModel):
@@ -126,6 +190,7 @@ class InvestmentGoalOut(BaseModel):
     monthly_contribution: float
     expected_return_rate: float
     start_date: date
+    household_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -138,6 +203,7 @@ class UserGoalCreate(BaseModel):
     target_date: Optional[date] = None
     monthly_contribution: float = 0.0
     expected_return_rate: float = 7.0
+    household_id: Optional[int] = None
 
 
 class UserGoalOut(BaseModel):
@@ -148,6 +214,7 @@ class UserGoalOut(BaseModel):
     target_date: Optional[date]
     monthly_contribution: float
     expected_return_rate: float
+    household_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -179,6 +246,7 @@ class AccountCreate(BaseModel):
     type: str
     balance: float = 0.0
     institution: str = ""
+    household_id: Optional[int] = None
 
 
 class AccountOut(BaseModel):
@@ -188,6 +256,7 @@ class AccountOut(BaseModel):
     type: str
     balance: float
     institution: str
+    household_id: Optional[int]
     created_at: datetime
     updated_at: datetime
 
@@ -260,6 +329,7 @@ class BudgetCreate(BaseModel):
     month: int
     year: int
     total_income: float = 0.0
+    household_id: Optional[int] = None
 
 
 class BudgetUpdate(BaseModel):
@@ -293,6 +363,7 @@ class BudgetOut(BaseModel):
     total_assigned: float
     total_spent: float
     total_remaining: float
+    household_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
 
@@ -306,6 +377,7 @@ class FundCreate(BaseModel):
     current_amount: float = 0.0
     monthly_contribution: float = 0.0
     goal_id: Optional[int] = None
+    household_id: Optional[int] = None
 
 
 class FundOut(BaseModel):
@@ -316,6 +388,7 @@ class FundOut(BaseModel):
     current_amount: float
     monthly_contribution: float
     goal_id: Optional[int]
+    household_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -329,6 +402,7 @@ class AgentAction(BaseModel):
 
 class AgentRequest(BaseModel):
     message: str
+    household_id: Optional[int] = None
 
 
 class AgentData(BaseModel):
@@ -452,6 +526,7 @@ class RecurringCreate(BaseModel):
     next_date: date
     end_date: Optional[date] = None
     is_active: bool = True
+    household_id: Optional[int] = None
 
 
 class RecurringUpdate(BaseModel):
@@ -479,6 +554,7 @@ class RecurringOut(BaseModel):
     next_date: date
     end_date: Optional[date]
     is_active: bool
+    household_id: Optional[int] = None
     created_at: datetime
 
     class Config:
@@ -504,6 +580,58 @@ class PromoteSubscriptionRequest(BaseModel):
     merchant: str
     amount: float
     category: str
+
+
+class HouseholdCreate(BaseModel):
+    name: str
+    share_data: bool = False
+
+
+class HouseholdOut(BaseModel):
+    id: int
+    name: str
+    invite_code: Optional[str]
+    created_by: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class HouseholdMemberOut(BaseModel):
+    id: int
+    household_id: int
+    user_id: int
+    role: str
+    joined_at: datetime
+    user_name: str = ""
+    user_email: str = ""
+
+    class Config:
+        from_attributes = True
+
+
+class HouseholdDetailOut(BaseModel):
+    household: HouseholdOut
+    members: list[HouseholdMemberOut]
+    is_owner: bool = False
+    is_admin: bool = False
+
+
+class JoinHouseholdRequest(BaseModel):
+    invite_code: str
+
+
+class TransferOwnershipRequest(BaseModel):
+    user_id: int
+
+
+class AccountUpdate(BaseModel):
+    name: Optional[str] = None
+    type: Optional[str] = None
+    balance: Optional[float] = None
+    institution: Optional[str] = None
+    household_id: Optional[int] = None
 
 
 class NetWorthSnapshotOut(BaseModel):

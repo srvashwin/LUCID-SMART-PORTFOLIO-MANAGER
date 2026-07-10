@@ -13,4 +13,5 @@ class Fund(Base):
     current_amount = Column(Float, default=0.0)
     monthly_contribution = Column(Float, default=0.0)
     goal_id = Column(Integer, ForeignKey("user_goals.id"), nullable=True)
+    household_id = Column(Integer, ForeignKey("households.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

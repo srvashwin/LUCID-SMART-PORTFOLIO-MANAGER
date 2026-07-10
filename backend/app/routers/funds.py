@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database import get_db
 from app.models.user import User
@@ -12,8 +12,17 @@ router = APIRouter(prefix="/api/funds", tags=["funds"])
 
 
 @router.get("", response_model=List[FundOut])
-def list_funds(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return db.query(Fund).filter(Fund.user_id == user.id).order_by(Fund.created_at.desc()).all()
+def list_funds(
+    household_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    query = db.query(Fund).filter(Fund.user_id == user.id)
+    if household_id is not None:
+        query = query.filter(Fund.household_id == household_id)
+    else:
+        query = query.filter(Fund.household_id == None)
+    return query.order_by(Fund.created_at.desc()).all()
 
 
 @router.post("", response_model=FundOut)
@@ -25,6 +34,7 @@ def create_fund(data: FundCreate, db: Session = Depends(get_db), user: User = De
         current_amount=data.current_amount,
         monthly_contribution=data.monthly_contribution,
         goal_id=data.goal_id,
+        household_id=data.household_id,
     )
     db.add(fund)
     db.commit()

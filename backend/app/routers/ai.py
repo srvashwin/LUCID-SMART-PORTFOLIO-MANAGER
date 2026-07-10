@@ -169,6 +169,7 @@ GREETINGS = {"hey", "hi", "hello", "heyy", "heyyy", "sup", "yo", "howdy", "whats
 
 @router.post("/agent")
 def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    hhid = data.household_id
     lower_msg = data.message.lower().strip()
     msg_words = lower_msg.split()
     if len(msg_words) <= 3 and any(g in lower_msg for g in GREETINGS):
@@ -228,6 +229,7 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
                     user_id=user.id, amount=add_amount,
                     frequency=params.get("frequency", "monthly"),
                     source=params.get("source", ""), date=date.today(),
+                    household_id=hhid,
                 )
                 db.add(income)
                 db.commit()
@@ -254,6 +256,7 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
                     frequency=params.get("frequency", "monthly"),
                     source=params.get("source", ""),
                     date=date.today(),
+                    household_id=hhid,
                 )
                 db.add(income)
                 db.commit()
@@ -272,6 +275,7 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
             raw_chat_input=data.message,
             source="ai_chat",
             date=date.today(),
+            household_id=hhid,
         )
         db.add(expense)
         db.commit()
@@ -289,6 +293,7 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
             monthly_contribution=params.get("monthly_contribution", 0),
             expected_return_rate=7.0,
             start_date=date.today(),
+            household_id=hhid,
         )
         db.add(goal)
         db.commit()
@@ -311,7 +316,7 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
                 expense = Expense(
                     user_id=user.id, amount=ca, category="Investment",
                     description=f"Investment contribution - {existing.name}", merchant="",
-                    source="ai_chat", date=date.today(),
+                    source="ai_chat", date=date.today(), household_id=hhid,
                 )
                 db.add(expense)
             db.commit()
@@ -329,13 +334,14 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
                 monthly_contribution=mc or 0,
                 expected_return_rate=7.0,
                 start_date=date.today(),
+                household_id=hhid,
             )
             db.add(goal)
             if ca > 0:
                 expense = Expense(
                     user_id=user.id, amount=ca, category="Investment",
                     description=f"Investment contribution - {goal.name}", merchant="",
-                    source="ai_chat", date=date.today(),
+                    source="ai_chat", date=date.today(), household_id=hhid,
                 )
                 db.add(expense)
             db.commit()
@@ -351,6 +357,7 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
             target_amount=params.get("target_amount", 10000),
             monthly_contribution=params.get("monthly_contribution", 0),
             expected_return_rate=7.0,
+            household_id=hhid,
         )
         db.add(goal)
         db.commit()
@@ -365,11 +372,12 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
         fund_type = "savings"
         if "invest" in fund_name.lower():
             fund_type = "investment"
-        existing = db.query(Fund).filter(
-            Fund.user_id == user.id,
-            Fund.name == fund_name,
-            Fund.type == fund_type,
-        ).first()
+        fund_filters = [Fund.user_id == user.id, Fund.name == fund_name, Fund.type == fund_type]
+        if hhid is not None:
+            fund_filters.append(Fund.household_id == hhid)
+        else:
+            fund_filters.append(Fund.household_id == None)
+        existing = db.query(Fund).filter(*fund_filters).first()
         if existing:
             old_amount = existing.current_amount
             existing.current_amount = (existing.current_amount or 0) + add_amount
@@ -397,6 +405,7 @@ def agent_chat(data: AgentRequest, db: Session = Depends(get_db), user: User = D
             category=params.get("category", "Other"),
             max_amount=params.get("max_amount", 200),
             period=params.get("period", "monthly"),
+            household_id=hhid,
         )
         db.add(rule)
         db.commit()

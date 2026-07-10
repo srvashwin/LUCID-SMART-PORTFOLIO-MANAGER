@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = ""
     SMTP_FROM_EMAIL: Optional[str] = ""
 
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    FRONTEND_URL: str = "http://localhost:5173"
+
     class Config:
         env_file = ".env"
 

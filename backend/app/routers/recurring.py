@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 
 from app.database import get_db
 from app.models.user import User
@@ -21,10 +21,17 @@ FREQUENCY_DAYS = {
 
 
 @router.get("", response_model=List[RecurringOut])
-def list_recurring(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return db.query(RecurringTransaction).filter(
-        RecurringTransaction.user_id == user.id
-    ).order_by(RecurringTransaction.next_date).all()
+def list_recurring(
+    household_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    query = db.query(RecurringTransaction).filter(RecurringTransaction.user_id == user.id)
+    if household_id is not None:
+        query = query.filter(RecurringTransaction.household_id == household_id)
+    else:
+        query = query.filter(RecurringTransaction.household_id == None)
+    return query.order_by(RecurringTransaction.next_date).all()
 
 
 @router.post("", response_model=RecurringOut)
@@ -41,6 +48,7 @@ def create_recurring(data: RecurringCreate, db: Session = Depends(get_db), user:
         next_date=data.next_date,
         end_date=data.end_date,
         is_active=data.is_active,
+        household_id=data.household_id,
     )
     db.add(recurring)
     db.commit()
@@ -77,11 +85,21 @@ def delete_recurring(recurring_id: int, db: Session = Depends(get_db), user: Use
 
 
 @router.get("/upcoming", response_model=UpcomingResponse)
-def get_upcoming(days: int = 30, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    recurring_list = db.query(RecurringTransaction).filter(
+def get_upcoming(
+    days: int = 30,
+    household_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    query = db.query(RecurringTransaction).filter(
         RecurringTransaction.user_id == user.id,
         RecurringTransaction.is_active == True,
-    ).all()
+    )
+    if household_id is not None:
+        query = query.filter(RecurringTransaction.household_id == household_id)
+    else:
+        query = query.filter(RecurringTransaction.household_id == None)
+    recurring_list = query.all()
 
     today = date.today()
     cutoff = today + timedelta(days=days)

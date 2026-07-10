@@ -7,7 +7,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.account import Account
 from app.models.net_worth_snapshot import NetWorthSnapshot
-from app.schemas import AccountCreate, AccountOut, NetWorthResponse, NetWorthSnapshotOut, NetWorthHistoryResponse
+from app.schemas import AccountCreate, AccountUpdate, AccountOut, NetWorthResponse, NetWorthSnapshotOut, NetWorthHistoryResponse
 from app.utils import get_current_user
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -66,7 +66,7 @@ def create_account(data: AccountCreate, db: Session = Depends(get_db), user: Use
 
 
 @router.put("/{account_id}", response_model=AccountOut)
-def update_account(account_id: int, data: AccountCreate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def update_account(account_id: int, data: AccountUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     account = db.query(Account).filter(Account.id == account_id, Account.user_id == user.id).first()
     if not account:
         raise HTTPException(status_code=404, detail="Account not found")

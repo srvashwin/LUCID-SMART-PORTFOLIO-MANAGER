@@ -10,6 +10,7 @@ import { LoadingList } from '../components/LoadingSkeleton'
 import { useToast } from '../components/Toast'
 import { formatAmount, getCurrencySymbol } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
+import { useHousehold } from '../hooks/useHousehold'
 
 const categories = [
   'Food & Dining', 'Transportation', 'Shopping', 'Bills & Utilities',
@@ -26,18 +27,20 @@ export default function Rules() {
   const [spendData, setSpendData] = useState<Record<string, number>>({})
   const [confirmId, setConfirmId] = useState<number | null>(null)
   const { currency } = useCurrency()
+  const { activeHouseholdId } = useHousehold()
   const { toast } = useToast()
 
   const fetch = () => {
     setLoading(true)
-    api.get('/rules').then(r => setRules(r.data)).catch(() => {}).finally(() => setLoading(false))
-    api.get('/expenses/stats').then(r => {
+    const hhParam = activeHouseholdId ? { household_id: activeHouseholdId } : {}
+    api.get('/rules', { params: hhParam }).then(r => setRules(r.data)).catch(() => {}).finally(() => setLoading(false))
+    api.get('/expenses/stats', { params: hhParam }).then(r => {
       const data: Record<string, number> = {}
       r.data.category_breakdown.forEach((c: any) => { data[c.category] = c.total })
       setSpendData(data)
     }).catch(() => {})
   }
-  useEffect(fetch, [])
+  useEffect(fetch, [activeHouseholdId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

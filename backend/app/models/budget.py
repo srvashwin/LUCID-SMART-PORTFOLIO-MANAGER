@@ -12,6 +12,7 @@ class Budget(Base):
     year = Column(Integer, nullable=False)
     total_income = Column(Float, default=0.0)
     is_active = Column(Boolean, default=True)
+    household_id = Column(Integer, ForeignKey("households.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

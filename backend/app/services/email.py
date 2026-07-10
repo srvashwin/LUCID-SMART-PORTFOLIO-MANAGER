@@ -46,3 +46,23 @@ If you didn't request this, you can safely ignore this email.
         subject="Reset your Lucid password",
         body=body,
     )
+
+
+def send_verification_email(email: str, name: str, verification_url: str) -> None:
+    body = f"""Hi {name},
+
+Welcome to Lucid! Please verify your email address by clicking the link below:
+
+{verification_url}
+
+This link expires in 1 hour.
+
+If you didn't create a Lucid account, you can safely ignore this email.
+
+- Lucid Team
+"""
+    send_email(
+        to=email,
+        subject="Verify your Lucid email",
+        body=body,
+    )

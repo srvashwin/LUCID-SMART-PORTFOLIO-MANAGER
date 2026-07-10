@@ -8,6 +8,7 @@ import MetricCard from '../components/MetricCard'
 import { useToast } from '../components/Toast'
 import { formatAmount, getCurrencySymbol } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
+import { useHousehold } from '../hooks/useHousehold'
 import { CATEGORY_COLORS } from '../utils/colors'
 
 type BudgetStyle = 'zero-based' | 'envelope'
@@ -26,6 +27,7 @@ export default function BudgetPage() {
   const [year, setYear] = useState(new Date().getFullYear())
   const { currency } = useCurrency()
   const symbol = getCurrencySymbol(currency)
+  const { activeHouseholdId } = useHousehold()
   const { toast } = useToast()
 
   useEffect(() => {
@@ -39,17 +41,20 @@ export default function BudgetPage() {
     try {
       let res
       const now = new Date()
+      const hhParam = activeHouseholdId ? { household_id: activeHouseholdId } : {}
       if (month === now.getMonth() + 1 && year === now.getFullYear()) {
-        res = await api.get('/budgets/current')
+        res = await api.get('/budgets/current', { params: hhParam })
       } else {
-        const all = await api.get('/budgets')
+        const all = await api.get('/budgets', { params: hhParam })
         const found = all.data.find(
           (b: Budget) => b.month === month && b.year === year
         )
         if (found) {
           res = { data: found }
         } else {
-          res = await api.post('/budgets', { month, year, total_income: 0 })
+          const payload: any = { month, year, total_income: 0 }
+          if (activeHouseholdId) payload.household_id = activeHouseholdId
+          res = await api.post('/budgets', payload)
         }
       }
       setBudget(res.data)
@@ -64,7 +69,7 @@ export default function BudgetPage() {
     } finally {
       setLoading(false)
     }
-  }, [month, year, refreshKey])
+  }, [month, year, refreshKey, activeHouseholdId])
 
   useEffect(() => {
     fetchBudget()

@@ -1,10 +1,23 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 
-from app.database import engine, Base
-from app.routers import auth, expenses, income, rules, goals, ai, reports, budgets, subscriptions, accounts, funds, imports, holdings, recurring
+from app.database import engine, Base, SessionLocal
+from app.routers import auth, expenses, income, rules, goals, ai, reports, budgets, subscriptions, accounts, funds, imports, holdings, recurring, households, cashflow
+from app.models.user import User
 
 Base.metadata.create_all(bind=engine)
+
+# Migrate existing users: set email_verified=True for pre-existing accounts
+db: Session = SessionLocal()
+try:
+    existing = db.query(User).filter(User.email_verified == None).all()
+    for u in existing:
+        u.email_verified = True
+    if existing:
+        db.commit()
+finally:
+    db.close()
 
 app = FastAPI(title="Smart Expense Tracker", version="1.0.0")
 
@@ -30,6 +43,8 @@ app.include_router(funds.router)
 app.include_router(imports.router)
 app.include_router(holdings.router)
 app.include_router(recurring.router)
+app.include_router(households.router)
+app.include_router(cashflow.router)
 
 
 @app.get("/api/health")

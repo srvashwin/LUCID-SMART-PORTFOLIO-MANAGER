@@ -8,6 +8,8 @@ interface AuthContextType {
   loading: boolean
   login: (email: string, password: string) => Promise<void>
   signup: (email: string, name: string, password: string, currency?: string) => Promise<void>
+  googleLogin: (idToken: string) => Promise<void>
+  verifyEmail: (token: string) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -33,17 +35,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token])
 
+  const storeToken = (newToken: string) => {
+    localStorage.setItem('token', newToken)
+    setToken(newToken)
+  }
+
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password })
-    localStorage.setItem('token', res.data.access_token)
-    setToken(res.data.access_token)
+    storeToken(res.data.access_token)
     const me = await api.get('/auth/me')
     setUser(me.data)
   }
 
   const signup = async (email: string, name: string, password: string, currency = 'USD') => {
     await api.post('/auth/signup', { email, name, password, currency })
-    await login(email, password)
+  }
+
+  const googleLogin = async (idToken: string) => {
+    const res = await api.post('/auth/google', { id_token: idToken })
+    storeToken(res.data.access_token)
+    const me = await api.get('/auth/me')
+    setUser(me.data)
+  }
+
+  const verifyEmail = async (token: string) => {
+    const res = await api.post('/auth/verify-email', { token })
+    storeToken(res.data.access_token)
+    const me = await api.get('/auth/me')
+    setUser(me.data)
   }
 
   const logout = () => {
@@ -62,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, signup, googleLogin, verifyEmail, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )
