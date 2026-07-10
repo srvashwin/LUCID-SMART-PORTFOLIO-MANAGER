@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import api from '../services/api'
 import type { Income } from '../types'
@@ -9,6 +9,8 @@ import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 import { useHousehold } from '../hooks/useHousehold'
+import { usePagination } from '../hooks/usePagination'
+import Pagination from '../components/Pagination'
 
 export default function Incomes() {
   const { activeHouseholdId } = useHousehold()
@@ -19,6 +21,7 @@ export default function Incomes() {
   const [refreshKey, setRefreshKey] = useState(0)
   const { currency } = useCurrency()
   const { toast } = useToast()
+  const pag = usePagination(20)
 
   const [form, setForm] = useState({ amount: '', source: '', frequency: 'monthly', date: '' })
 
@@ -28,14 +31,25 @@ export default function Incomes() {
     return () => window.removeEventListener('lucid-data-changed', handler)
   }, [])
 
-  useEffect(() => {
+  const fetchIncomes = useCallback(() => {
     setLoading(true)
-    const params: any = {}
+    const params: any = { offset: pag.offset, limit: pag.limit }
     if (activeHouseholdId) params.household_id = activeHouseholdId
-    api.get('/income', { params }).then(r => setIncomes(r.data)).catch(() => {
+    api.get('/income', { params }).then(r => {
+      setIncomes(r.data.items)
+      pag.setTotal(r.data.total)
+    }).catch(() => {
       toast('Failed to load income', 'error')
     }).finally(() => setLoading(false))
-  }, [refreshKey, activeHouseholdId])
+  }, [refreshKey, activeHouseholdId, pag.offset, pag.limit])
+
+  useEffect(() => {
+    fetchIncomes()
+  }, [fetchIncomes])
+
+  useEffect(() => {
+    pag.goToPage(0)
+  }, [activeHouseholdId])
 
   const total = incomes.reduce((s, inc) => s + inc.amount, 0)
 
@@ -219,6 +233,8 @@ export default function Incomes() {
           </table>
         </div>
       </GlassCard>
+
+      <Pagination page={pag.page} totalPages={pag.totalPages} hasPrev={pag.hasPrev} hasNext={pag.hasNext} onPrev={pag.prevPage} onNext={pag.nextPage} onGoTo={pag.goToPage} />
     </div>
   )
 }

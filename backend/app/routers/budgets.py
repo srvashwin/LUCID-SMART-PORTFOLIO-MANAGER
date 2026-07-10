@@ -13,6 +13,7 @@ from app.models.category import Category
 from app.schemas import BudgetCreate, BudgetUpdate, BudgetCategoryAssign, BudgetOut, BudgetCategoryOut
 from app.utils import get_current_user
 from app.deps import verify_household_access
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/budgets", tags=["budgets"])
 
@@ -62,9 +63,10 @@ def _build_budget_out(budget: Budget, db: Session, user_id: int, household_id: O
     )
 
 
-@router.get("", response_model=List[BudgetOut])
+@router.get("")
 def list_budgets(
     household_id: Optional[int] = None,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -74,8 +76,10 @@ def list_budgets(
         query = query.filter(Budget.household_id == household_id)
     else:
         query = query.filter(Budget.household_id == None)
-    budgets = query.order_by(Budget.year.desc(), Budget.month.desc()).all()
-    return [_build_budget_out(b, db, user.id, household_id) for b in budgets]
+    budgets_q = query.order_by(Budget.year.desc(), Budget.month.desc())
+    result = paginate(budgets_q, params.offset, params.limit)
+    result.items = [_build_budget_out(b, db, user.id, household_id) for b in result.items]
+    return result
 
 
 @router.post("", response_model=BudgetOut)

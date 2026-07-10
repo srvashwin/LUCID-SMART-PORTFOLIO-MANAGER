@@ -9,6 +9,7 @@ from app.models.recurring import RecurringTransaction
 from app.schemas import RecurringCreate, RecurringUpdate, RecurringOut, UpcomingOccurrence, UpcomingResponse
 from app.utils import get_current_user
 from app.deps import verify_household_access
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/recurring", tags=["recurring"])
 
@@ -21,9 +22,10 @@ FREQUENCY_DAYS = {
 }
 
 
-@router.get("", response_model=List[RecurringOut])
+@router.get("")
 def list_recurring(
     household_id: Optional[int] = None,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -33,7 +35,7 @@ def list_recurring(
         query = query.filter(RecurringTransaction.household_id == household_id)
     else:
         query = query.filter(RecurringTransaction.household_id == None)
-    return query.order_by(RecurringTransaction.next_date).all()
+    return paginate(query.order_by(RecurringTransaction.next_date), params.offset, params.limit)
 
 
 @router.post("", response_model=RecurringOut)

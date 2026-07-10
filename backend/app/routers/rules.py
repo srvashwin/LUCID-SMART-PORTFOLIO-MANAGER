@@ -8,6 +8,7 @@ from app.models.spending_rule import SpendingRule
 from app.schemas import SpendingRuleCreate, SpendingRuleOut
 from app.utils import get_current_user
 from app.deps import verify_household_access
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/rules", tags=["rules"])
 
@@ -22,9 +23,10 @@ def create_rule(data: SpendingRuleCreate, db: Session = Depends(get_db), user: U
     return rule
 
 
-@router.get("", response_model=List[SpendingRuleOut])
+@router.get("")
 def list_rules(
     household_id: Optional[int] = None,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -34,7 +36,7 @@ def list_rules(
         query = query.filter(SpendingRule.household_id == household_id)
     else:
         query = query.filter(SpendingRule.household_id == None)
-    return query.all()
+    return paginate(query, params.offset, params.limit)
 
 
 @router.put("/{rule_id}", response_model=SpendingRuleOut)

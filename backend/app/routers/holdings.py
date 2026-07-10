@@ -8,13 +8,21 @@ from app.models.holding import Holding
 from app.schemas import HoldingCreate, HoldingOut, HoldingUpdate, PortfolioHolding, PortfolioResponse
 from app.utils import get_current_user
 from app.services.price_fetcher import get_price_for_ticker, refresh_all_prices
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/holdings", tags=["holdings"])
 
 
-@router.get("", response_model=List[HoldingOut])
-def list_holdings(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return db.query(Holding).filter(Holding.user_id == user.id).order_by(Holding.ticker).all()
+@router.get("")
+def list_holdings(
+    params: PaginationParams = Depends(),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return paginate(
+        db.query(Holding).filter(Holding.user_id == user.id).order_by(Holding.ticker),
+        params.offset, params.limit,
+    )
 
 
 @router.post("", response_model=HoldingOut)

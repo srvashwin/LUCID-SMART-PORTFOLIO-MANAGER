@@ -9,6 +9,7 @@ from app.models.income import Income
 from app.schemas import IncomeCreate, IncomeUpdate, IncomeOut
 from app.utils import get_current_user
 from app.deps import verify_household_access
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/income", tags=["income"])
 
@@ -23,9 +24,10 @@ def create_income(data: IncomeCreate, db: Session = Depends(get_db), user: User 
     return income
 
 
-@router.get("", response_model=List[IncomeOut])
+@router.get("")
 def list_incomes(
     household_id: Optional[int] = None,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -35,7 +37,7 @@ def list_incomes(
         query = query.filter(Income.household_id == household_id)
     else:
         query = query.filter(Income.household_id == None)
-    return query.order_by(Income.date.desc()).all()
+    return paginate(query.order_by(Income.date.desc()), params.offset, params.limit)
 
 
 @router.get("/latest", response_model=IncomeOut)

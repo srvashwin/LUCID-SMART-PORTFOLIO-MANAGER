@@ -2,13 +2,16 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from alembic.config import Config as AlembicConfig
+from alembic import command
 
 from app.database import engine, Base, SessionLocal
 from app.routers import auth, expenses, income, rules, goals, ai, reports, budgets, subscriptions, accounts, funds, imports, holdings, recurring, households, cashflow
 from app.models.user import User
 
 if not os.getenv("TESTING"):
-    Base.metadata.create_all(bind=engine)
+    alembic_cfg = AlembicConfig(os.path.join(os.path.dirname(__file__), "..", "alembic.ini"))
+    command.upgrade(alembic_cfg, "head")
 
     # Migrate existing users: set email_verified=True for pre-existing accounts
     db: Session = SessionLocal()

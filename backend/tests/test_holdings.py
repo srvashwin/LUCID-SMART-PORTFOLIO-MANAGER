@@ -21,7 +21,7 @@ def test_list_holdings(client, auth_headers, db):
     r = client.get("/api/holdings", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
-    assert len(data) == 2
+    assert data["total"] == 2
 
 
 def test_update_holding(client, auth_headers, db):
@@ -53,7 +53,7 @@ def test_delete_holding(client, auth_headers, db):
     assert r.status_code == 200
 
     r2 = client.get("/api/holdings", headers=auth_headers)
-    assert len(r2.json()) == 0
+    assert r2.json()["total"] == 0
 
 
 def test_portfolio_fallback_on_unavailable(client, auth_headers, db):

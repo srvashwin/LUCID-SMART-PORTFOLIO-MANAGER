@@ -8,13 +8,15 @@ from app.models.fund import Fund
 from app.schemas import FundCreate, FundOut
 from app.utils import get_current_user
 from app.deps import verify_household_access
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/funds", tags=["funds"])
 
 
-@router.get("", response_model=List[FundOut])
+@router.get("")
 def list_funds(
     household_id: Optional[int] = None,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -24,7 +26,7 @@ def list_funds(
         query = query.filter(Fund.household_id == household_id)
     else:
         query = query.filter(Fund.household_id == None)
-    return query.order_by(Fund.created_at.desc()).all()
+    return paginate(query.order_by(Fund.created_at.desc()), params.offset, params.limit)
 
 
 @router.post("", response_model=FundOut)

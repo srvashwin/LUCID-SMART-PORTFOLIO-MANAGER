@@ -42,9 +42,9 @@ export default function Goals() {
     setLoading(true)
     const hhParam = activeHouseholdId ? { household_id: activeHouseholdId } : {}
     Promise.all([
-      api.get('/goals/investment', { params: hhParam }).then(r => setInvGoals(r.data)),
-      api.get('/goals/user-goals', { params: hhParam }).then(r => setUserGoals(r.data)),
-      api.get('/funds', { params: hhParam }).then(r => setFunds(r.data)),
+      api.get('/goals/investment', { params: hhParam }).then(r => setInvGoals(r.data.items || r.data)),
+      api.get('/goals/user-goals', { params: hhParam }).then(r => setUserGoals(r.data.items || r.data)),
+      api.get('/funds', { params: hhParam }).then(r => setFunds(r.data.items || r.data)),
     ]).catch(() => {}).finally(() => setLoading(false))
   }
   useEffect(fetch, [activeHouseholdId])

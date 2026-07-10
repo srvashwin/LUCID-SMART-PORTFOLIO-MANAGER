@@ -33,7 +33,7 @@ export default function Rules() {
   const fetch = () => {
     setLoading(true)
     const hhParam = activeHouseholdId ? { household_id: activeHouseholdId } : {}
-    api.get('/rules', { params: hhParam }).then(r => setRules(r.data)).catch(() => {}).finally(() => setLoading(false))
+    api.get('/rules', { params: hhParam }).then(r => setRules(r.data.items || r.data)).catch(() => {}).finally(() => setLoading(false))
     api.get('/expenses/stats', { params: hhParam }).then(r => {
       const data: Record<string, number> = {}
       r.data.category_breakdown.forEach((c: any) => { data[c.category] = c.total })

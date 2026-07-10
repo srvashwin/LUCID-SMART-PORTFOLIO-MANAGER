@@ -135,7 +135,7 @@ export default function Portfolio() {
     setLoading(true)
     Promise.all([
       api.get('/holdings/portfolio').then(r => setPortfolio(r.data)),
-      api.get('/holdings').then(r => setHoldings(r.data)),
+      api.get('/holdings').then(r => setHoldings(r.data.items || r.data)),
     ]).catch(() => {}).finally(() => setLoading(false))
   }, [refreshKey])
 

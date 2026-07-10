@@ -46,7 +46,8 @@ export default function BudgetPage() {
         res = await api.get('/budgets/current', { params: hhParam })
       } else {
         const all = await api.get('/budgets', { params: hhParam })
-        const found = all.data.find(
+        const budgetsList: Budget[] = all.data.items || all.data
+        const found = budgetsList.find(
           (b: Budget) => b.month === month && b.year === year
         )
         if (found) {

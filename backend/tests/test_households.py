@@ -80,12 +80,12 @@ def test_household_data_isolation(client, auth_headers, db):
 
     r = client.get("/api/expenses?household_id=" + str(h.id), headers=auth_headers)
     assert r.status_code == 200
-    assert len(r.json()) == 1
-    assert r.json()[0]["description"] == "household"
+    assert r.json()["total"] == 1
+    assert r.json()["items"][0]["description"] == "household"
 
     r2 = client.get("/api/expenses", headers=auth_headers)
-    assert len(r2.json()) == 1
-    assert r2.json()[0]["description"] == "personal"
+    assert r2.json()["total"] == 1
+    assert r2.json()["items"][0]["description"] == "personal"
 
 
 def test_household_forbidden_without_membership(client, auth_headers, db):

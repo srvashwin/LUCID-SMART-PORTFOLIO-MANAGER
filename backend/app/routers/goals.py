@@ -10,6 +10,7 @@ from datetime import date, datetime
 from app.schemas import UserGoalCreate, UserGoalOut, InvestmentGoalCreate, InvestmentGoalOut, GoalTimelineRequest, GoalTimelineResponse
 from app.utils import get_current_user
 from app.deps import verify_household_access
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/goals", tags=["goals"])
 
@@ -26,9 +27,10 @@ def create_user_goal(data: UserGoalCreate, db: Session = Depends(get_db), user: 
     return goal
 
 
-@router.get("/user-goals", response_model=List[UserGoalOut])
+@router.get("/user-goals")
 def list_user_goals(
     household_id: Optional[int] = None,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -38,7 +40,7 @@ def list_user_goals(
         query = query.filter(UserGoal.household_id == household_id)
     else:
         query = query.filter(UserGoal.household_id == None)
-    return query.all()
+    return paginate(query, params.offset, params.limit)
 
 
 @router.put("/user-goals/{goal_id}", response_model=UserGoalOut)
@@ -76,9 +78,10 @@ def create_investment_goal(data: InvestmentGoalCreate, db: Session = Depends(get
     return goal
 
 
-@router.get("/investment", response_model=List[InvestmentGoalOut])
+@router.get("/investment")
 def list_investment_goals(
     household_id: Optional[int] = None,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -88,7 +91,7 @@ def list_investment_goals(
         query = query.filter(InvestmentGoal.household_id == household_id)
     else:
         query = query.filter(InvestmentGoal.household_id == None)
-    return query.all()
+    return paginate(query, params.offset, params.limit)
 
 
 @router.put("/investment/{goal_id}", response_model=InvestmentGoalOut)

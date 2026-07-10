@@ -24,7 +24,7 @@ def test_list_expenses(client, auth_headers, db):
     r = client.get("/api/expenses", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
-    assert len(data) == 2
+    assert data["total"] == 2
 
 
 def test_list_expenses_filter_category(client, auth_headers, db):
@@ -37,8 +37,8 @@ def test_list_expenses_filter_category(client, auth_headers, db):
     r = client.get("/api/expenses?category=Food", headers=auth_headers)
     assert r.status_code == 200
     data = r.json()
-    assert len(data) == 1
-    assert data[0]["category"] == "Food"
+    assert data["total"] == 1
+    assert data["items"][0]["category"] == "Food"
 
 
 def test_update_expense(client, auth_headers, db):

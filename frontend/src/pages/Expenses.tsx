@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import api from '../services/api'
@@ -10,6 +10,8 @@ import { useToast } from '../components/Toast'
 import { formatAmount } from '../utils/format'
 import { useCurrency } from '../hooks/useCurrency'
 import { useHousehold } from '../hooks/useHousehold'
+import { usePagination } from '../hooks/usePagination'
+import Pagination from '../components/Pagination'
 import { getCategoryColor } from '../utils/colors'
 
 const CATEGORIES = [
@@ -29,6 +31,7 @@ export default function Expenses() {
   const [refreshKey, setRefreshKey] = useState(0)
   const { currency } = useCurrency()
   const { toast } = useToast()
+  const pag = usePagination(20)
 
   // Split modal state
   const [splitExpense, setSplitExpense] = useState<Expense | null>(null)
@@ -41,17 +44,29 @@ export default function Expenses() {
     return () => window.removeEventListener('lucid-data-changed', handler)
   }, [])
 
-  useEffect(() => {
+  const fetchExpenses = useCallback(() => {
     setLoading(true)
-    const params: any = { month, year }
+    const params: any = { month, year, offset: pag.offset, limit: pag.limit }
     if (filter) params.category = filter
     if (taxFilter === 'yes') params.tax_deductible = true
     else if (taxFilter === 'no') params.tax_deductible = false
     if (activeHouseholdId) params.household_id = activeHouseholdId
-    api.get('/expenses', { params }).then(r => setExpenses(r.data)).catch(() => {
+    api.get('/expenses', { params }).then(r => {
+      setExpenses(r.data.items)
+      pag.setTotal(r.data.total)
+    }).catch(() => {
       toast('Failed to load expenses', 'error')
     }).finally(() => setLoading(false))
-  }, [filter, taxFilter, month, year, refreshKey, activeHouseholdId])
+  }, [filter, taxFilter, month, year, refreshKey, activeHouseholdId, pag.offset, pag.limit])
+
+  useEffect(() => {
+    fetchExpenses()
+  }, [fetchExpenses])
+
+  // Reset offset when filters change
+  useEffect(() => {
+    pag.goToPage(0)
+  }, [filter, taxFilter, month, year, activeHouseholdId])
 
   useEffect(() => {
     if (splitExpense) {
@@ -235,6 +250,8 @@ export default function Expenses() {
           </table>
         </div>
       </GlassCard>
+
+      <Pagination page={pag.page} totalPages={pag.totalPages} hasPrev={pag.hasPrev} hasNext={pag.hasNext} onPrev={pag.prevPage} onNext={pag.nextPage} onGoTo={pag.goToPage} />
 
       {/* Split Modal */}
       <AnimatePresence>

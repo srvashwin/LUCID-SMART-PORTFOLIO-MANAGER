@@ -17,6 +17,7 @@ from app.utils import get_current_user
 from app.deps import verify_household_access
 from app.services.ai_service import classify_expense
 from app.config import settings
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/expenses", tags=["expenses"])
 
@@ -87,13 +88,14 @@ def update_expense(expense_id: int, data: ExpenseUpdate, db: Session = Depends(g
     return expense
 
 
-@router.get("", response_model=List[ExpenseOut])
+@router.get("")
 def list_expenses(
     category: Optional[str] = None,
     month: Optional[int] = None,
     year: Optional[int] = None,
     tax_deductible: Optional[bool] = None,
     household_id: Optional[int] = None,
+    params: PaginationParams = Depends(),
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
@@ -111,7 +113,7 @@ def list_expenses(
         query = query.filter(extract("year", Expense.date) == year)
     if tax_deductible is not None:
         query = query.filter(Expense.tax_deductible == tax_deductible)
-    return query.order_by(Expense.date.desc()).all()
+    return paginate(query.order_by(Expense.date.desc()), params.offset, params.limit)
 
 
 @router.get("/stats")

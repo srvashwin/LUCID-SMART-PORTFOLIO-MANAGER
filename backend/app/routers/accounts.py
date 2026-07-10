@@ -9,6 +9,7 @@ from app.models.account import Account
 from app.models.net_worth_snapshot import NetWorthSnapshot
 from app.schemas import AccountCreate, AccountUpdate, AccountOut, NetWorthResponse, NetWorthSnapshotOut, NetWorthHistoryResponse
 from app.utils import get_current_user
+from app.pagination import PaginationParams, paginate
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
 
